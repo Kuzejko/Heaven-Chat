@@ -1,0 +1,23 @@
+{
+  "name": "openrouter-character-chat",
+  "version": "1.0.0",
+  "description": "Local single-page HTML app for chatting with character bots through OpenRouter.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node scripts/build-web.js",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:open-android": "npx cap open android",
+    "cap:build-apk": "npm run cap:sync && cd android && (./gradlew assembleDebug || gradlew.bat assembleDebug)"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/core": "^8.4.1"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1"
+  }
+}

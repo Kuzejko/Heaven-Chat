@@ -1,0 +1,2414 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Heaven Chat</title>
+    <link rel="icon" type="image/png" href="./app_logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./styles.css?v=4.8" />
+  </head>
+  <body>
+    <div class="app">
+      <div id="sidebarLeftBackdrop" class="sidebar-backdrop"></div>
+      <aside class="sidebar" id="sidebarLeft">
+        <div class="sidebar-branding">
+          <div class="app-logo-badge">
+            <img src="./app_logo.png" alt="Heaven Chat Logo" class="app-logo" />
+          </div>
+          <div class="app-branding-text">
+            <span class="app-title">Heaven Chat</span>
+            <span class="app-subtitle"><span class="pulse-dot"></span>AI Studio</span>
+          </div>
+        </div>
+        <div class="sidebar-tabs">
+          <button id="tabCharactersBtn" class="sidebar-tab active">Characters</button>
+          <button id="tabGmScenesBtn" class="sidebar-tab">GM Scenes</button>
+        </div>
+
+        <!-- Quick Model Switcher in Left Sidebar -->
+        <div class="sidebar-model-switcher" id="sidebarModelSwitcher">
+          <div class="sidebar-model-header">
+            <span class="sidebar-model-title" title="Быстрый выбор модели">
+              <svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              Модель
+            </span>
+            <button type="button" id="sidebarModelActiveName" class="sidebar-model-active-name" title="Нажмите, чтобы открыть полные настройки моделей">GLM 5.3 Flash</button>
+          </div>
+          <div class="sidebar-model-pills">
+            <button type="button" id="quickModelBtnGlm52" class="sidebar-model-pill" data-model="z-ai/glm-5.2" title="Переключить на GLM 5.2 (z-ai/glm-5.2)">
+              <span class="pill-dot"></span>
+              <span class="pill-name">GLM 5.2</span>
+            </button>
+            <button type="button" id="quickModelBtnGlm53Flash" class="sidebar-model-pill" data-model="z-ai/glm-5.3-flash" title="Переключить на GLM 5.3 Flash (z-ai/glm-5.3-flash)">
+              <span class="pill-dot"></span>
+              <span class="pill-name">GLM 5.3 Flash</span>
+            </button>
+          </div>
+        </div>
+        
+        <div id="charactersSection" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+          <div class="sidebar-header">
+            <div class="sidebar-header-actions">
+              <button id="openCatalogBtn" title="🧭 Каталог персонажей (Chub AI & Рекомендуемые)">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+              </button>
+              <button id="quickCreateCharBtn" title="Create Character">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button id="quickImportCharBtn" title="Импорт карточки персонажа (Chub AI / PNG / JSON)">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </button>
+              <input type="file" id="characterCardFileInput" accept=".png,.json,.card,.chub,image/png,application/json" style="display: none;" />
+              <button id="debugMenuBtn" title="Debug Info">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+              </button>
+              <button id="openPersonaBtn" title="User Personas">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              </button>
+              <button id="openSettingsBtn" title="Settings">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              </button>
+            </div>
+          </div>
+          <div class="sidebar-catalog-banner-wrap" style="padding: 2px 16px 6px 16px;">
+            <button type="button" id="openCatalogBannerBtn" class="sidebar-catalog-banner-btn" title="Открыть каталог персонажей">
+              <span class="banner-icon">🧭</span>
+              <span class="banner-text">Каталог персонажей</span>
+              <span class="banner-badge">Chub AI</span>
+            </button>
+          </div>
+          <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 9px; margin-bottom: 6px;">
+            <input id="characterSearchInput" type="search" placeholder="Search..." style="margin: 0 16px; width: calc(100% - 32px); box-sizing: border-box;" />
+          </div>
+          <ul id="characterList" class="character-list" style="flex: 1; overflow-y: auto;"></ul>
+        </div>
+
+        <div id="gmScenesSection" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
+          <div class="sidebar-header">
+            <div class="sidebar-header-actions">
+              <button id="createGmSceneBtn" title="Create GM Scene">
+                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+            </div>
+          </div>
+          <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 9px; margin-bottom: 6px;">
+            <input id="gmSceneSearchInput" type="search" placeholder="Search scenes..." style="margin: 0 16px; width: calc(100% - 32px); box-sizing: border-box;" />
+          </div>
+          <ul id="gmSceneList" class="character-list" style="flex: 1; overflow-y: auto;"></ul>
+        </div>
+      </aside>
+
+      <main class="chat-area">
+        <header class="chat-header">
+          <div class="chat-header-left">
+            <button id="toggleSidebarLeftBtn" class="toggle-sidebar-left-btn" title="Toggle Sidebar"><svg class="feather" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></button>
+            <div class="chat-character-identity">
+              <div id="headerCharAvatarWrap" class="header-char-avatar-wrap" style="display: none;">
+                <img id="headerCharAvatarImg" class="header-char-avatar-img" src="" alt="" style="display: none;" />
+                <div id="headerCharAvatarFallback" class="header-char-avatar-fallback"></div>
+                <span class="header-char-online-dot"></span>
+              </div>
+              <div class="chat-char-titles">
+                <h2 id="activeCharacterName">No character</h2>
+              </div>
+              <button id="editCharacterBtn" class="chat-header-btn btn-icon-only" title="Edit Character"><svg class="feather" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg></button>
+              <button id="chatHeaderEnhanceBtn" class="chat-header-btn btn-icon-only" title="✨ Улучшить персонажа через ИИ (с режимом 18+)"><svg class="feather" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
+              <button id="adoptActiveCharAsPersonaBtn" class="chat-header-btn btn-icon-only" title="🎭 Играть за этого персонажа (Взять как свою персону)"><svg class="feather" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+            </div>
+            <div class="chat-badges-wrap">
+              <span id="activeModelBadge" class="model-badge" title="Active Model"></span>
+            </div>
+          </div>
+
+          <div class="chat-header-right">
+            <span id="statusText" class="status-text"></span>
+            <button id="headerTokenBadge" type="button" class="header-token-badge" style="display: none;" title="Размер контекста и токенов последнего ответа. Нажмите для подробной статистики"></button>
+            
+            <div id="chatSelectorContainer" class="chat-selector-container">
+              <select id="chatSelector" class="chat-selector" title="Switch Chat"></select>
+              <button id="newChatBtn" class="chat-header-btn btn-icon-only" title="New Chat"><svg class="feather" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+
+              <!-- Chat More Actions Dropdown Menu -->
+              <div class="chat-actions-menu-wrap" id="chatActionsMenuWrap">
+                <button id="chatMoreActionsBtn" class="chat-header-btn btn-icon-only" type="button" title="Опции диалога">
+                  <svg class="feather" viewBox="0 0 24 24" fill="currentColor" stroke="none"><circle cx="12" cy="12" r="2.2"></circle><circle cx="12" cy="5" r="2.2"></circle><circle cx="12" cy="19" r="2.2"></circle></svg>
+                </button>
+                <div id="chatActionsDropdown" class="chat-actions-dropdown">
+                  <button id="newChatUserFirstBtn" class="dropdown-item" type="button" title="Пользователь начинает первым">
+                    <svg class="feather" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    <span>Начать свой сюжет</span>
+                  </button>
+                  <button id="duoChatBtn" class="dropdown-item" type="button" title="New Duo Chat">
+                    <svg class="feather" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span>Дуо-чат (2 бота)</span>
+                  </button>
+                  <button id="convertToGmSceneBtn" class="dropdown-item" type="button" title="Преобразовать этот чат в GM Сцену">
+                    <svg class="feather" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>Преобразовать в GM Сцену</span>
+                  </button>
+                  <div id="duoModeToggle" class="dropdown-item-toggle">
+                    <span id="duoBothSpeakLabel" style="font-size: 12px; color: var(--text-secondary);">Оба бота отвечают</span>
+                    <label class="switch switch-small">
+                      <input id="duoBothSpeakToggle" type="checkbox" checked />
+                      <span class="slider round"></span>
+                    </label>
+                  </div>
+                  <div class="dropdown-divider"></div>
+                  <button id="timeSkipDropdownBtn" class="dropdown-item" type="button" title="Перемотка времени (Time Skip)">
+                    <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Перемотка времени...</span>
+                  </button>
+                  <div class="dropdown-item-row" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; font-size: 13px;">
+                    <span style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+                      <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+                      <span>Размер текста</span>
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                      <button id="fontSizeDecBtn" type="button" class="btn-icon-only" style="width: 26px; height: 26px; font-size: 11px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;" title="Уменьшить шрифт">A-</button>
+                      <span id="fontSizeDisplay" style="font-size: 12px; min-width: 32px; text-align: center; color: var(--accent); font-weight: 600;">15.5</span>
+                      <button id="fontSizeIncBtn" type="button" class="btn-icon-only" style="width: 26px; height: 26px; font-size: 11px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;" title="Увеличить шрифт">A+</button>
+                    </div>
+                  </div>
+                  <div class="dropdown-item-row" style="display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; font-size: 13px;">
+                    <span style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+                      <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="m4.93 4.93 4.24 4.24"></path><path d="m14.83 9.17 4.24-4.24"></path><path d="m14.83 14.83 4.24 4.24"></path><path d="m9.17 14.83-4.24 4.24"></path></svg>
+                      <span>Цвет реплик</span>
+                    </span>
+                    <div id="dialogueColorPicker" style="display: flex; align-items: center; gap: 8px;">
+                      <button type="button" class="dialogue-color-dot" data-theme="white" style="width: 20px; height: 20px; border-radius: 50%; background: #ffffff; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Чистый белый"></button>
+                      <button type="button" class="dialogue-color-dot" data-theme="silver" style="width: 20px; height: 20px; border-radius: 50%; background: #e4e4e7; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Светло-серебристый"></button>
+                      <button type="button" class="dialogue-color-dot" data-theme="zinc" style="width: 20px; height: 20px; border-radius: 50%; background: #a1a1aa; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Нейтральный цинк"></button>
+                      <button type="button" class="dialogue-color-dot" data-theme="ghost" style="width: 20px; height: 20px; border-radius: 50%; background: #71717a; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Пепельный"></button>
+                    </div>
+                  </div>
+                  <button id="renameChatBtn" class="dropdown-item" type="button" title="Rename Chat">
+                    <svg class="feather" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg>
+                    <span>Переименовать</span>
+                  </button>
+                  <button id="chatScenarioBtn" class="dropdown-item" type="button" title="Задать сценарий только для этого чата">
+                    <svg class="feather" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>
+                    <span>Сценарий чата</span>
+                  </button>
+                  <button id="restartChatBtn" class="dropdown-item" type="button" title="Restart Chat">
+                    <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                    <span>Перезапустить</span>
+                  </button>
+                  <button id="deleteChatBtn" class="dropdown-item dropdown-item-danger" type="button" title="Delete Chat">
+                    <svg class="feather" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                    <span>Удалить чат</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button id="toggleSidebarRightBtn" class="toggle-log-btn btn-icon-only" title="Toggle Character Info"><svg class="feather" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+          </div>
+        </header>
+
+        <div id="gmSceneHeaderBanner" class="gm-scene-header-banner" style="display: none;">
+          <div class="gm-banner-inner">
+            <div class="gm-banner-main">
+              <div class="gm-banner-scenario" id="gmBannerScenarioText"></div>
+            </div>
+            <div class="gm-banner-participants" id="gmBannerParticipantsList"></div>
+          </div>
+        </div>
+
+        <section id="messages" class="messages"></section>
+
+        <div id="stateNotifications" class="state-notifications"></div>
+
+        <form id="chatForm" class="composer" onsubmit="event.preventDefault(); return false;">
+          <!-- Context row: who you are playing + what should steer the scene.
+               Grouped apart from the tool row below, which only holds inputs
+               and the primary action. -->
+          <div class="composer-context-row">
+            <button id="composerPersonaBtn" type="button" class="composer-persona-pill" title="Выберите персону пользователя">
+              <span id="composerPersonaAvatar" class="persona-pill-avatar">👤</span>
+              <span class="composer-persona-text">
+                <span class="composer-persona-caption">Вы играете за</span>
+                <span id="composerPersonaName" class="persona-pill-name">User</span>
+              </span>
+              <svg class="feather chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="directivesBar" class="directives-bar"></div>
+          </div>
+          <div id="imagePreviewContainer" class="image-preview-container" style="display: none;"></div>
+          <div id="emojiPickerPanel" class="emoji-picker-panel" style="display: none;"></div>
+          <textarea id="messageInput" placeholder="Напишите сообщение…" rows="1"></textarea>
+          <div class="composer-bottom-bar">
+            <div class="composer-left-tools">
+              <button id="attachImageBtn" type="button" class="composer-icon-btn" title="Прикрепить изображение">
+                <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+              </button>
+              <input type="file" id="imageFileInput" accept="image/png, image/jpeg, image/webp, image/gif" multiple style="display: none;" />
+              <button id="emojiPickerBtn" type="button" class="composer-icon-btn" title="Выбрать эмодзи">
+                <span style="font-size: 16px;">😃</span>
+              </button>
+              <button id="timeSkipBtn" type="button" class="composer-icon-btn" title="Перемотка времени (Time Skip)">
+                <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </button>
+              <button id="thinkingToggleBtn" type="button" class="composer-icon-btn thinking-toggle-btn active" title="Размышления модели: ВКЛ (нажмите для отключения)">
+                <span class="thinking-toggle-icon">🧠</span>
+              </button>
+            </div>
+            <div class="composer-actions">
+              <button id="sendBtn" type="button" class="btn-send-main"><svg class="feather" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> <span>Send</span></button>
+            </div>
+          </div>
+        </form>
+      </main>
+
+      <!-- Right Sidebar for Character Info & Stats -->
+      <aside id="sidebarRight" class="sidebar-right">
+        <div class="sidebar-right-header">
+          <div class="sidebar-right-title">
+            <span class="sidebar-right-eyebrow">Инспектор</span>
+            <h3>Панель истории</h3>
+          </div>
+          <button id="closeSidebarRightBtn" class="close-sidebar-btn" title="Close Info">&times;</button>
+        </div>
+
+        <!-- Segmented Tab Bar -->
+        <div class="sidebar-right-tabs" id="sidebarRightTabs">
+          <button type="button" class="sidebar-tab-btn active" data-tab="memory" title="Живой Кодекс и память сюжета">
+            <span class="tab-icon">🧠</span>
+            <span class="tab-label">Кодекс</span>
+          </button>
+          <button type="button" class="sidebar-tab-btn" data-tab="character" title="Состояние и настроение героя">
+            <span class="tab-icon">👤</span>
+            <span class="tab-label">Герой</span>
+          </button>
+          <button type="button" class="sidebar-tab-btn" data-tab="stats" title="Токены, модель и журнал событий">
+            <span class="tab-icon">📊</span>
+            <span class="tab-label">Сессия</span>
+          </button>
+        </div>
+
+        <div class="sidebar-right-scrollable">
+          <!-- TAB 1: Кодекс & Память Сюжета -->
+          <div id="rightTabContentMemory" class="right-tab-pane active">
+            <div class="sidebar-right-section memory-manager-section">
+              <div class="rp-section-head">
+                <h4 class="section-title">🧠 Живой Кодекс & Память</h4>
+                <button id="recalcMemoryBtn" type="button" class="rp-chip-btn" title="Recalculate Story Summary">✨ Summarize</button>
+              </div>
+
+              <button id="openSessionCodexBtn" type="button" class="codex-action-btn primary rp-full" title="Открыть Живой Кодекс Сессии (структурированная память сюжета)">
+                <span>🧠 Живой Кодекс Сессии</span>
+              </button>
+
+              <div id="sidebarCodexPreview" class="codex-sidebar-card">
+                <div class="rp-kv-head">
+                  <span class="rp-kv-label">📍 Локация & Время</span>
+                  <span id="sidebarCodexSyncBadge" class="rp-muted-badge">Не создано</span>
+                </div>
+                <div id="sidebarCodexLocation" class="rp-kv-value">Не определено</div>
+                <div id="sidebarCodexStatus" class="rp-kv-status">Сюжет только начинается</div>
+              </div>
+
+              <div class="rp-btn-row">
+                <button id="generateWorldLoreBtn" type="button" class="codex-action-btn amber" title="Сгенерировать мир и энциклопедию из диалога">
+                  <span>🌍 Сгенерировать мир</span>
+                </button>
+                <button id="openWorldLoreBtn" type="button" class="codex-action-btn secondary" title="Открыть редакцию Лора Мира">
+                  <span>📖 Лор</span>
+                </button>
+              </div>
+
+              <!-- Chat World Genre / Setting Selector -->
+              <div class="memory-subsection">
+                <h5 class="rp-sub-title">🌍 Сеттинг этого диалога</h5>
+                <select id="chatWorldGenreSelect" class="select-wide rp-select">
+                  <option value="fantasy">🧙‍♂️ Фэнтези / Средневековье (Fantasy)</option>
+                  <option value="modern">🏙️ Современный мир (Modern World)</option>
+                  <option value="scifi">🚀 Научная фантастика (Sci-Fi)</option>
+                  <option value="cyberpunk">🌃 Киберпанк (Cyberpunk)</option>
+                  <option value="any">🎲 Любой / Общий сеттинг</option>
+                </select>
+              </div>
+
+              <hr class="section-divider" />
+
+              <!-- Pinned Facts (Always Remember) -->
+              <div class="memory-subsection">
+                <h5 class="rp-sub-title">📌 Pinned Facts (Always Remember)</h5>
+                <div class="rp-input-row">
+                  <input id="pinnedFactInput" type="text" class="rp-input" placeholder="Add fact (e.g. Leo is allergic to nuts)..." />
+                  <button id="addPinnedFactBtn" type="button" class="rp-add-btn">+ Add</button>
+                </div>
+                <div id="pinnedFactsList" class="pinned-facts-chips rp-list">
+                  <span class="rp-empty">No pinned facts yet.</span>
+                </div>
+              </div>
+
+              <hr class="section-divider" />
+
+              <!-- Story Summary Textarea -->
+              <div class="memory-subsection">
+                <h5 class="rp-sub-title">📖 Story Summary (Editable)</h5>
+                <textarea id="storySummaryInput" class="rp-textarea" placeholder="No summary generated yet. The AI will summarize long chats or you can write summary here..."></textarea>
+                <div class="rp-btn-row">
+                  <button id="saveSummaryBtn" type="button" class="rp-action-btn">Save Summary</button>
+                  <button id="viewSummaryBtn" type="button" class="rp-action-btn rp-action-btn-ghost" title="История саммари">📜 История</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: Состояние и Настроение Героя -->
+          <div id="rightTabContentCharacter" class="right-tab-pane" style="display: none;">
+            <!-- GM Scene NPC Dossier (visible in GM scenes) -->
+            <div id="gmSceneNpcSection" class="sidebar-right-section" style="display: none;">
+              <div class="rp-section-head">
+                <h4 class="section-title">🎭 Участники сцены</h4>
+                <button id="gmQuickEditSceneBtn" type="button" class="rp-chip-btn">⚙️ Настроить</button>
+              </div>
+              <div id="gmSidebarNpcList" class="gm-sidebar-npc-list"></div>
+            </div>
+
+            <div class="sidebar-right-section">
+              <h4 class="section-title">Active States & Conditions</h4>
+              <div id="customStatesPanel" class="custom-states-panel"></div>
+              <hr class="section-divider" />
+              <div id="statusConditionsPanel" class="status-conditions-panel"></div>
+            </div>
+
+            <!-- Override / Custom Controls -->
+            <div class="sidebar-right-section">
+              <h4 class="section-title">Override Status & Mood</h4>
+              <div class="builtin-controls-grid">
+                <div class="control-row">
+                  <span class="control-label">Mood</span>
+                  <select id="moodSelect">
+                    <option value="happy">😊 Happy</option>
+                    <option value="sad">😢 Sad</option>
+                    <option value="angry">😠 Angry</option>
+                    <option value="flirty">😳 Flirty</option>
+                    <option value="neutral">😐 Neutral</option>
+                    <option value="excited">🤩 Excited</option>
+                    <option value="nervous">😰 Nervous</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="sidebar-divider-section">
+                <h5>Custom States Manager</h5>
+                <form id="stateForm" class="rp-state-form" onsubmit="event.preventDefault();">
+                  <input id="stateKeyInput" type="text" placeholder="Key" class="state-input-small" />
+                  <select id="stateTypeSelect" class="state-select-small">
+                    <option value="number">Number</option>
+                    <option value="string">String</option>
+                    <option value="boolean">Boolean</option>
+                  </select>
+                  <input id="stateValueInput" type="text" placeholder="Value" class="state-input-small" />
+                  <button type="submit" class="rp-add-btn btn-add-state">Add</button>
+                </form>
+
+                <ul id="stateList" class="state-list sidebar-state-list"></ul>
+              </div>
+
+              <div class="sidebar-divider-section">
+                <h5>AI Suggestions</h5>
+                <ul id="stateProposalList" class="proposal-list"></ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 3: Сессия, Токены и Журнал -->
+          <div id="rightTabContentStats" class="right-tab-pane" style="display: none;">
+            <div class="sidebar-right-section model-stats-section">
+              <h4 class="section-title">Model & Session Stats</h4>
+              <div class="stats-grid">
+                <div class="stats-row">
+                  <span class="stats-label">Model</span>
+                  <span id="statsModelName" class="stats-value" title="No model selected">-</span>
+                </div>
+                <div class="stats-row">
+                  <span class="stats-label">Context Limit</span>
+                  <span id="statsContextLimit" class="stats-value">-</span>
+                </div>
+                <div class="stats-row">
+                  <span class="stats-label">Pricing (1M)</span>
+                  <span id="statsPricing" class="stats-value">-</span>
+                </div>
+                <div class="stats-row">
+                  <span class="stats-label">Last prompt</span>
+                  <span id="statsLastPromptTokens" class="stats-value">-</span>
+                </div>
+                <div class="stats-row">
+                  <span class="stats-label">Last reply</span>
+                  <span id="statsLastCompletionTokens" class="stats-value">-</span>
+                </div>
+                <div class="stats-row">
+                  <span class="stats-label">Turn cost</span>
+                  <span id="statsLastCost" class="stats-value">-</span>
+                </div>
+                <div class="stats-row">
+                  <span class="stats-label">Summary</span>
+                  <span id="statsSummaryPresent" class="stats-value" title="No active summary">-</span>
+                </div>
+                <div class="stats-row stats-row-accent">
+                  <span class="stats-label">OpenRouter Balance</span>
+                  <span id="statsOpenRouterCredits" class="stats-value" title="Remaining account credits / key balance">-</span>
+                </div>
+                <div class="stats-row stats-row-accent">
+                  <span class="stats-label">Total Spent</span>
+                  <span id="statsTotalSpent" class="stats-value stats-value-gold">$0.000000</span>
+                </div>
+              </div>
+              <div class="rp-btn-row">
+                <button id="resetSpentBtn" type="button" class="rp-action-btn rp-action-btn-ghost">Reset Spent</button>
+              </div>
+            </div>
+
+            <div class="sidebar-right-section log-section">
+              <div class="event-log-header">
+                <h4 class="section-title">Log History</h4>
+                <button id="clearEventLogBtn" type="button">Clear</button>
+              </div>
+              <div id="eventLogPanel" class="event-log-panel-container">
+                <ul id="eventLogList" class="event-log-list"></ul>
+              </div>
+            </div>
+
+            <div class="sidebar-right-section">
+              <h4 class="section-title">Действия истории</h4>
+              <div class="undo-redo-box">
+                <button id="undoBtn" type="button" class="rp-action-btn">Undo</button>
+                <button id="redoBtn" type="button" class="rp-action-btn">Redo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <dialog id="settingsDialog">
+      <header class="dialog-header">
+        <h3>Settings & Admin</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('settingsDialog').close()">&times;</button>
+      </header>
+
+      <nav class="settings-tabs-strip" role="tablist">
+        <button type="button" class="settings-tab-btn active" data-tab="tab-api" id="tabBtnApi" role="tab" aria-selected="true">
+          <span>🔌</span> API & Модели
+        </button>
+        <button type="button" class="settings-tab-btn" data-tab="tab-generation" id="tabBtnGeneration" role="tab" aria-selected="false">
+          <span>⚙️</span> Параметры генерации
+        </button>
+        <button type="button" class="settings-tab-btn" data-tab="tab-setting" id="tabBtnSetting" role="tab" aria-selected="false">
+          <span>🌍</span> Сеттинг & Память
+        </button>
+      </nav>
+
+      <form class="dialog-form" onsubmit="event.preventDefault()">
+        <!-- Вкладка 1: API & Модели -->
+        <div id="settingsTabApi" class="settings-tab-panel active" role="tabpanel">
+          <!-- Блок провайдера -->
+          <div class="settings-card">
+            <h4 class="settings-card-title">🌐 Провайдер API</h4>
+            <label class="form-field-block" style="margin-bottom: 8px;">
+              <span class="font-medium" style="font-size: 13px;">API Provider:</span>
+              <select id="apiProviderSelect" class="select-wide">
+                <option value="openrouter">OpenRouter</option>
+                <option value="nordrouter">NordRouter (OpenAI API)</option>
+                <option value="local">Local LLM (OpenAI API)</option>
+                <option value="kobold">KoboldAI (Classic API)</option>
+              </select>
+            </label>
+
+            <!-- NordRouter-specific fields -->
+            <div id="nordrouterFields" style="display: none;">
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 13px;">API Key (NordRouter):</span>
+                <input id="nordrouterApiKeyInput" type="password" placeholder="sk-nr-... или ваш ключ" class="param-number-input" style="margin-top: 4px;" />
+              </label>
+
+              <label class="form-field-block" style="margin-bottom: 6px;">
+                <span class="font-medium" style="font-size: 12.5px;">Base URL:</span>
+                <input id="nordrouterBaseUrlInput" type="text" placeholder="https://nordrouter.com/v1" class="param-number-input" style="margin-top: 4px;" />
+              </label>
+              <div style="font-size: 11.5px; color: var(--text-muted, #888); margin-top: 4px; line-height: 1.4;">
+                💡 Совместимый с OpenAI роутер моделей (<a href="https://nordrouter.com" target="_blank" rel="noreferrer" style="color: var(--accent-primary, #6366f1); text-decoration: underline;">nordrouter.com</a>). Введите ваш API-ключ, и модели загрузятся автоматически.
+              </div>
+            </div>
+
+            <!-- OpenRouter-specific fields -->
+            <div id="openrouterFields">
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 13px;">API Key:</span>
+                <input id="apiKeyInput" type="password" placeholder="sk-or-v1-..." class="param-number-input" style="margin-top: 4px;" />
+              </label>
+
+              <div class="settings-grid-2col" style="margin-top: 6px;">
+                <label class="form-field-block" style="margin-bottom: 6px;">
+                  <span style="font-size: 12px; font-weight: 500;">Приоритет провайдера (Provider Routing):</span>
+                  <select id="providerSortSelect" class="select-wide">
+                    <option value="price">💰 Самый дешевый (price)</option>
+                    <option value="latency">⚡ Мин. задержка (latency)</option>
+                    <option value="throughput">🚀 Макс. скорость (throughput)</option>
+                    <option value="default">🌐 OpenRouter (default)</option>
+                  </select>
+                </label>
+                <label class="form-field-block" style="margin-bottom: 6px;">
+                  <span style="font-size: 12px; font-weight: 500;">Конкретный провайдер:</span>
+                  <select id="specificProviderSelect" class="select-wide">
+                    <option value="">🌐 Автовыбор (Любой)</option>
+                  </select>
+                  <input type="hidden" id="specificProviderInput" />
+                  <div id="specificProviderStatus" class="provider-status-hint" style="font-size: 11px; color: var(--text-muted, #888); margin-top: 2px;"></div>
+                </label>
+              </div>
+
+              <div class="toggle-container compact-toggle">
+                <span class="font-medium" style="font-size: 12.5px;">Разрешить резервных провайдеров (allow_fallbacks)</span>
+                <label class="switch">
+                  <input id="allowFallbacksInput" type="checkbox" checked />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Local LLM-specific fields -->
+            <div id="localLlmFields">
+              <label class="form-field-block" style="margin-bottom: 6px;">
+                <span class="font-medium" style="font-size: 12.5px;">Base URL:</span>
+                <input id="localBaseUrlInput" type="text" placeholder="http://localhost:1234/v1" class="param-number-input" style="margin-top: 4px;" />
+              </label>
+              <label class="form-field-block" style="margin-bottom: 6px;">
+                <span class="font-medium" style="font-size: 12.5px;">API Key:</span>
+                <input id="localApiKeyInput" type="password" placeholder="lm-studio" class="param-number-input" style="margin-top: 4px;" />
+              </label>
+            </div>
+          </div>
+
+          <!-- Блок выбора моделей (карточки) -->
+          <div class="settings-card">
+            <h4 class="settings-card-title">🤖 Выбор моделей</h4>
+
+            <!-- Основная модель -->
+            <div class="model-selection-card" style="margin-bottom: 6px;">
+              <label id="modelLabel" class="font-medium" style="font-size: 12.5px; display: block; margin-bottom: 4px;">Основная модель (Model):</label>
+              <div class="model-select-refresh-row">
+                <select id="modelSelect" class="select-wide"></select>
+                <button id="refreshModelsBtn" type="button" title="Обновить список доступных моделей">
+                  <svg class="feather" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  Refresh
+                </button>
+              </div>
+              <input id="customModelInput" type="text" placeholder="Или введите ID модели вручную..." class="param-number-input" style="margin-top: 5px;" />
+              <div id="settingsModelDetails" class="settings-model-details" style="margin-top: 3px;"></div>
+            </div>
+
+            <!-- Модель оценщика -->
+            <div class="model-selection-card" style="margin-bottom: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <label id="evaluatorModelLabel" class="font-medium" style="font-size: 12.5px; display: block; margin-bottom: 4px;">Модель оценщика (Evaluator Model):</label>
+              <select id="evaluatorModelSelect" class="select-wide"></select>
+              <input id="customEvaluatorModelInput" type="text" placeholder="Или укажите ID модели оценщика..." class="param-number-input" style="margin-top: 5px;" />
+            </div>
+
+            <!-- Модель перевода -->
+            <div class="model-selection-card" style="padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <label id="translationModelLabel" class="font-medium" style="font-size: 12.5px; display: block; margin-bottom: 4px;">Модель перевода на русский (Translation Model):</label>
+              <select id="translationModelSelect" class="select-wide"></select>
+              <input id="customTranslationModelInput" type="text" placeholder="Или укажите ID модели перевода..." class="param-number-input" style="margin-top: 5px;" />
+            </div>
+
+            <!-- Десижн модель JEV -->
+            <div class="model-selection-card" style="padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <label id="jevModelLabel" class="font-medium" style="font-size: 12.5px; display: block; margin-bottom: 4px;">Десижн модель JEV (System One Decision Model):</label>
+              <select id="jevModelSelect" class="select-wide"></select>
+              <input id="customJevModelInput" type="text" placeholder="~typesafe/jev-latest или typesafe-ai/jev..." class="param-number-input" style="margin-top: 5px;" />
+              <div style="font-size: 11px; color: var(--text-muted, #888); margin-top: 3px; line-height: 1.3;">
+                🧠 Быстрая модель решений TypeSafe Jev (детекция целей персонажа, оценка вероятностей, фильтрация RAG-памяти).
+              </div>
+            </div>
+          </div>
+
+          <p id="apiStatusText" class="api-status-text" style="margin: 4px 0;"></p>
+
+          <!-- Управление данными -->
+          <div class="dialog-action-row" style="margin-top: 6px;">
+            <button id="exportBtn" type="button" class="chat-header-btn" style="flex: 1;">💾 Export Data</button>
+            <button id="importBtn" type="button" class="chat-header-btn" style="flex: 1;">📥 Import Data</button>
+            <button id="clearEnvBtn" type="button" class="btn-danger" style="flex: 1;">🗑️ Clear Environment</button>
+            <input id="importFileInput" type="file" style="display:none" />
+          </div>
+        </div>
+
+        <!-- Вкладка 2: Параметры генерации -->
+        <div id="settingsTabGen" class="settings-tab-panel" role="tabpanel">
+          <!-- Верхний параметр: Temperature -->
+          <div class="sampling-param-card" style="margin-bottom: 8px;">
+            <div class="sampling-param-header">
+              <label for="temperatureInput" class="param-title">🔥 Temperature (Креативность)</label>
+              <span class="param-hint">Базовая вариативность генерации (0.0 – 2.0)</span>
+            </div>
+            <input id="temperatureInput" type="number" min="0" max="2" step="0.1" class="param-number-input" style="margin-top: 4px;" />
+          </div>
+
+          <!-- Сетка 3 слева + 3 справа: симметричный баланс без пустых углов -->
+          <div class="sampling-grid">
+            <!-- Колонка 1: Top P, Min P, Max Tokens (3 инпута слева) -->
+            <div class="sampling-column">
+              <div class="sampling-param-card">
+                <div class="sampling-param-header">
+                  <label for="topPInput" class="param-title">Top P</label>
+                  <span class="param-hint">Nucleus sampling (0.0 – 1.0)</span>
+                </div>
+                <input id="topPInput" type="number" min="0" max="1" step="0.05" class="param-number-input" />
+              </div>
+
+              <div class="sampling-param-card">
+                <div class="sampling-param-header">
+                  <label for="minPInput" class="param-title">Min P</label>
+                  <span class="param-hint">Порог вероятности (0.0 – 1.0)</span>
+                </div>
+                <input id="minPInput" type="number" min="0" max="1" step="0.01" class="param-number-input" />
+              </div>
+
+              <div class="sampling-param-card">
+                <div class="sampling-param-header">
+                  <label for="maxTokensInput" class="param-title">Max Tokens</label>
+                  <span class="param-hint">Лимит токенов ответа</span>
+                </div>
+                <input id="maxTokensInput" type="number" min="1" step="1" class="param-number-input" />
+              </div>
+            </div>
+
+            <!-- Колонка 2: Presence Penalty, Frequency Penalty, Repetition Penalty (3 инпута справа) -->
+            <div class="sampling-column">
+              <div class="sampling-param-card">
+                <div class="sampling-param-header">
+                  <label for="presencePenaltyInput" class="param-title">Presence Penalty</label>
+                  <span class="param-hint">Новизна тем (-2.0 – 2.0)</span>
+                </div>
+                <input id="presencePenaltyInput" type="number" min="-2" max="2" step="0.05" class="param-number-input" />
+              </div>
+
+              <div class="sampling-param-card">
+                <div class="sampling-param-header">
+                  <label for="frequencyPenaltyInput" class="param-title">Frequency Penalty</label>
+                  <span class="param-hint">Частотный штраф (-2.0 – 2.0)</span>
+                </div>
+                <input id="frequencyPenaltyInput" type="number" min="-2" max="2" step="0.05" class="param-number-input" />
+              </div>
+
+              <div class="sampling-param-card">
+                <div class="sampling-param-header">
+                  <label for="repetitionPenaltyInput" class="param-title">Repetition Penalty</label>
+                  <span class="param-hint">Штраф за повторы (0.0 – 2.0)</span>
+                </div>
+                <input id="repetitionPenaltyInput" type="number" min="0" max="2" step="0.05" class="param-number-input" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Дополнительные параметры генерации -->
+          <div class="settings-card">
+            <h4 class="settings-card-title">⚙️ Дополнительные опции генерации</h4>
+
+            <label class="form-field-block" style="margin-bottom: 8px;">
+              <span class="font-medium" style="font-size: 12.5px;">Отображение мыслей (Thinking / Reasoning):</span>
+              <select id="thinkingDisplaySelect" class="select-wide">
+                <option value="collapsed" selected>💭 Свернуто (спойлер по клику) [Рекомендуется]</option>
+                <option value="hidden">🚫 Полностью скрыть (не показывать размышления)</option>
+                <option value="live">⚡ Разворачивать при генерации (Live Stream)</option>
+              </select>
+            </label>
+
+            <div class="generation-toggles-grid">
+              <div class="toggle-container compact-toggle">
+                <span class="font-medium" style="font-size: 13px;">Enable State Evaluator (Оценщик состояний)</span>
+                <label class="switch">
+                  <input id="enableEvaluatorInput" type="checkbox" />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="toggle-container compact-toggle" style="background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span class="font-medium" style="font-size: 13px; color: var(--text-primary);">🛡️ Иерархический промпт Stab's EDH</span>
+                  <span style="font-size: 10.5px; color: var(--text-secondary);">Anti-Slop, когнитивный реализм NPC, Stop-and-Pass и запрет эха</span>
+                </div>
+                <label class="switch">
+                  <input id="stabsEdhToggle" type="checkbox" checked />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="toggle-container compact-toggle" style="background: rgba(255, 255, 255, 0.03); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span class="font-medium" style="font-size: 13px; color: var(--text-primary);">🎭 Скрытые трейты персонажей (Hidden Traits)</span>
+                  <span style="font-size: 10.5px; color: var(--text-secondary);">Секретные модификаторы отношений (Tsundere, Obsessive) в промпт</span>
+                </div>
+                <label class="switch">
+                  <input id="enableHiddenTraitsToggle" type="checkbox" checked />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+
+              <div class="toggle-container" style="display: none;">
+                <span class="font-medium">Enable Inner Monologue</span>
+                <label class="switch">
+                  <input id="enableInnerMonologueInput" type="checkbox" checked />
+                  <span class="slider round"></span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Вкладка 3: Сеттинг & Память -->
+        <div id="settingsTabSetting" class="settings-tab-panel" role="tabpanel">
+          <div class="settings-card">
+            <h4 class="settings-card-title">🌍 Сеттинг и правила общения</h4>
+            <div class="settings-grid-2col">
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 12.5px;">World Genre & Setting:</span>
+                <select id="worldGenreSelect" class="select-wide">
+                  <option value="fantasy">🧙‍♂️ Фэнтези / Средневековье</option>
+                  <option value="modern">🏙️ Современный мир</option>
+                  <option value="scifi">🚀 Научная фантастика / Sci-Fi</option>
+                  <option value="cyberpunk">🌃 Киберпанк (Cyberpunk)</option>
+                  <option value="any">🎲 Любой / Обычный</option>
+                </select>
+              </label>
+
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 12.5px;">Chat Language:</span>
+                <select id="chatLanguageSelect" class="select-wide">
+                  <option value="ru">🇷🇺 Русский (Russian)</option>
+                  <option value="en">🇬🇧 English</option>
+                </select>
+              </label>
+
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 12.5px;">Response Length (Длина):</span>
+                <select id="responseLengthSelect" class="select-wide">
+                  <option value="short">Short (1-3 предл.)</option>
+                  <option value="medium">Medium (2-3 абзаца)</option>
+                  <option value="long">Long (4-5 абзацев)</option>
+                  <option value="huge">Detailed/Huge (6+ абзацев)</option>
+                </select>
+              </label>
+
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 12.5px;">Режим Саммари и Памяти:</span>
+                <select id="summaryModeSelect" class="select-wide">
+                  <option value="every_turn">⚡ Каждый ход (~400 токенов)</option>
+                  <option value="every_5_messages">⌛ Каждые 5 сообщений</option>
+                  <option value="manual">🛑 Только вручную</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="form-field-block" style="margin-top: 6px; margin-bottom: 2px;">
+              <span class="font-medium" style="font-size: 12.5px;">Скользящее окно контекста (История сообщений):</span>
+              <select id="maxHistoryMessagesSelect" class="select-wide">
+                <option value="10">10 сообщений (~5 ходов)</option>
+                <option value="16">16 сообщений (~8 ходов)</option>
+                <option value="20" selected>20 сообщений (~10 ходов) [Рекомендуется]</option>
+                <option value="30">30 сообщений (~15 ходов)</option>
+                <option value="50">50 сообщений (~25 ходов)</option>
+                <option value="0">Все сообщения (Без ограничений)</option>
+              </select>
+            </label>
+          </div>
+
+          <!-- Системный промпт -->
+          <div class="settings-card">
+            <div class="dialog-prompt-header">
+              <h4 class="settings-card-title" style="margin: 0;">📜 System Prompt</h4>
+              <button id="startPromptWizardBtn" type="button" class="chat-header-btn btn-wizard-trigger">
+                <svg class="feather" viewBox="0 0 24 24" width="12" height="12"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> Prompt Wizard
+              </button>
+            </div>
+            <textarea id="globalSystemPromptInput" rows="2" placeholder="Глобальные системные инструкции для персонажей..." style="margin-top: 6px;"></textarea>
+            <button id="previewPromptBtn" type="button" class="btn-preview-prompt">🔍 Preview Full System Prompt Context</button>
+          </div>
+
+          <!-- Внешний вид и чтение диалогов -->
+          <div class="settings-card">
+            <h4 class="settings-card-title">📖 Внешний вид и чтение диалогов</h4>
+            <div class="dialog-form-row-align" style="margin-top: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px;">Размер шрифта текста:</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button id="settingsFontSizeDecBtn" type="button" class="btn-icon-only" style="width: 28px; height: 28px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;">A-</button>
+                <span id="settingsFontSizeDisplay" style="font-size: 13px; min-width: 36px; text-align: center; color: var(--accent); font-weight: 600;">15.5</span>
+                <button id="settingsFontSizeIncBtn" type="button" class="btn-icon-only" style="width: 28px; height: 28px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;">A+</button>
+              </div>
+            </div>
+            <div class="dialog-form-row-align" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 13px;">Цвет выделения реплик:</span>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <button type="button" class="dialogue-color-dot" data-theme="white" style="width: 22px; height: 22px; border-radius: 50%; background: #ffffff; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Чистый белый"></button>
+                <button type="button" class="dialogue-color-dot" data-theme="silver" style="width: 22px; height: 22px; border-radius: 50%; background: #e4e4e7; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Светло-серебристый"></button>
+                <button type="button" class="dialogue-color-dot" data-theme="zinc" style="width: 22px; height: 22px; border-radius: 50%; background: #a1a1aa; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Нейтральный цинк"></button>
+                <button type="button" class="dialogue-color-dot" data-theme="ghost" style="width: 22px; height: 22px; border-radius: 50%; background: #71717a; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Пепельный"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <section class="dialog-footer-section" style="padding: 10px 20px; border-top: 1px solid var(--border); flex-shrink: 0;">
+        <button id="manageCharactersBtn" type="button" class="chat-header-btn" style="width: 100%; height: 38px; font-weight: 600;">👥 Manage Characters</button>
+      </section>
+    </dialog>
+
+    <dialog id="adminDialog">
+      <form method="dialog" class="admin-topbar">
+        <h3>Character Admin</h3>
+        <button type="submit" class="close-dialog-btn">&times;</button>
+      </form>
+      <div class="admin-layout">
+        <div class="admin-sidebar">
+          <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;">
+            <button id="startWizardBtn" type="button"><svg class="feather" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> New Character</button>
+            <button id="adminImportCardBtn" type="button" class="btn-admin-import" style="display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 12px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #ffffff; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;"><svg class="feather" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg> Import Card (Chub)</button>
+          </div>
+          <ul id="adminCharacterList" class="admin-list"></ul>
+        </div>
+        <div class="admin-form">
+          <div id="adminWizardView" class="character-studio-container">
+            <!-- Studio Header & Concept Launcher -->
+            <div class="studio-header">
+              <div class="studio-title-row">
+                <div class="studio-title-wrap">
+                  <span class="studio-badge">✨ AI STUDIO 2.0</span>
+                  <h4>Конструктор Персонажей</h4>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button id="studioImportCardBtn" type="button" class="studio-import-btn" title="Импорт карточки персонажа с Chub AI / SillyTavern">
+                    <span class="btn-icon">📥</span> <span class="btn-text">Импорт карточки (Chub)</span>
+                  </button>
+                  <div class="creator-assistant-model-wrap">
+                    <span class="text-sm-secondary">Модель:</span>
+                    <select id="wizardModelSelect" class="select-small"></select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Smart Concept Input Bar -->
+              <div class="studio-prompt-bar">
+                <div class="studio-input-wrap">
+                  <span class="studio-input-icon">💡</span>
+                  <input id="studioConceptInput" type="text" placeholder="Опишите идею (например: Холодная эльфийка-маг, тайно влюбленная в героя)..." />
+                  <button id="studioRandomBtn" type="button" class="studio-random-btn" title="Случайная вдохновляющая идея">🎲 Случайная идея</button>
+                </div>
+                <button id="studioGenerateBtn" type="button" class="studio-generate-btn">
+                  <span class="btn-icon">✨</span> <span class="btn-text">Создать за 1 клик</span>
+                </button>
+              </div>
+
+              <!-- Archetype Presets Row -->
+              <div class="studio-archetypes-row">
+                <span class="archetypes-label">Архетипы:</span>
+                <div class="archetypes-scroll">
+                  <button type="button" class="archetype-chip" data-concept="Холодная эльфийка-чародейка из древнего рода, скрывающая сильные чувства">🧝‍♀️ Эльфийка-маг</button>
+                  <button type="button" class="archetype-chip" data-concept="Дерзкая цундэрэ-напарница, которая дразнит героя, но всегда защищает">🌶️ Цундэрэ</button>
+                  <button type="button" class="archetype-chip" data-concept="Преданный рыцарь-защитник с обетом верности и строгим кодексом чести">🛡️ Верный рыцарь</button>
+                  <button type="button" class="archetype-chip" data-concept="Гениальный киберпанк-хакер и бунтарь в неоновом мегаполисе">⚡ Кибер-хакер</button>
+                  <button type="button" class="archetype-chip" data-concept="Древний вампир-аристократ, уставший от вечности, хранящий мрачную тайну">🍷 Вампир</button>
+                  <button type="button" class="archetype-chip" data-concept="Заботливая и добрая целительница с таинственной магической меткой">🌸 Целительница</button>
+                  <button type="button" class="archetype-chip" data-concept="Опасная разбойница и наемница с саркастичным чувством юмора">🗡️ Наемница</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Studio Feedback / Loading -->
+            <div id="studioFeedback" class="studio-feedback" style="display: none;"></div>
+
+            <!-- Main Studio 2-Column Grid -->
+            <div class="studio-grid" id="studioCardsContainer">
+              <!-- Left Column: Interactive Editable Cards -->
+              <div class="studio-left-col">
+                <!-- Card 1: Основная информация -->
+                <div class="studio-card">
+                  <div class="studio-card-header">
+                    <span class="card-title">👤 Основная информация</span>
+                    <span class="card-hint">Имя, Пол и Краткое описание</span>
+                  </div>
+                  <div class="studio-card-body">
+                    <div class="studio-form-row">
+                      <div class="studio-field" style="flex: 2;">
+                        <label for="studioNameInput">Имя персонажа:</label>
+                        <input id="studioNameInput" type="text" placeholder="Имя персонажа" />
+                      </div>
+                      <div class="studio-field" style="flex: 1;">
+                        <label for="studioGenderSelect">Пол / Род:</label>
+                        <select id="studioGenderSelect" class="select-wide">
+                          <option value="she/her">Женский (she/her)</option>
+                          <option value="he/him">Мужской (he/him)</option>
+                          <option value="they/them">Нейтральный (they/them)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div class="studio-field margin-top-8">
+                      <label for="studioDescriptionInput">Краткое описание (One-liner / Bio):</label>
+                      <input id="studioDescriptionInput" type="text" placeholder="Например: Холодная эльфийка-чародейка" />
+                    </div>
+                    
+                    <div class="studio-field margin-top-8">
+                      <div class="field-header-row">
+                        <label for="studioTraitsInput">Черты характера (Traits):</label>
+                        <span class="text-xs-muted">Кликните тег для выбора</span>
+                      </div>
+                      <input id="studioTraitsInput" type="text" placeholder="Cold, Tsundere, Intelligent, Loyal" />
+                      <div class="studio-traits-pool">
+                        <span class="studio-trait-tag" data-trait="Cold">❄️ Cold</span>
+                        <span class="studio-trait-tag" data-trait="Tsundere">🌶️ Tsundere</span>
+                        <span class="studio-trait-tag" data-trait="Shy">😳 Shy</span>
+                        <span class="studio-trait-tag" data-trait="Caring">💖 Caring</span>
+                        <span class="studio-trait-tag" data-trait="Sarcastic">😏 Sarcastic</span>
+                        <span class="studio-trait-tag" data-trait="Proud">👑 Proud</span>
+                        <span class="studio-trait-tag" data-trait="Mysterious">🔮 Mysterious</span>
+                        <span class="studio-trait-tag" data-trait="Loyal">🛡️ Loyal</span>
+                        <span class="studio-trait-tag" data-trait="Flirty">💋 Flirty</span>
+                      </div>
+                    </div>
+
+                    <div class="studio-field margin-top-8">
+                      <div class="field-header-row">
+                        <label for="studioHiddenTraitsInput">🎭 Скрытые черты (Hidden Traits):</label>
+                        <span class="text-xs-muted">Секретные модификаторы</span>
+                      </div>
+                      <input id="studioHiddenTraitsInput" type="text" placeholder="Tsundere, Obsessive, Masochist" />
+                      <div class="studio-traits-pool" id="studioHiddenTraitsPool">
+                        <span class="studio-trait-tag hidden-trait-tag" data-trait="Tsundere">🌶️ Tsundere</span>
+                        <span class="studio-trait-tag hidden-trait-tag" data-trait="Obsessive">🖤 Obsessive</span>
+                        <span class="studio-trait-tag hidden-trait-tag" data-trait="Volatile">⚡ Volatile</span>
+                        <span class="studio-trait-tag hidden-trait-tag" data-trait="Masochist">⛓️ Masochist</span>
+                        <span class="studio-trait-tag hidden-trait-tag" data-trait="Unpredictable">🎲 Unpredictable</span>
+                        <span class="studio-trait-tag hidden-trait-tag" data-trait="Guarded">🛡️ Guarded</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 2: Личность, Внешность и Речь -->
+                <div class="studio-card">
+                  <div class="studio-card-header">
+                    <span class="card-title">🎭 Личность, Внешность и Речь</span>
+                    <div class="smart-chips-group">
+                      <button type="button" class="smart-chip" data-modify="make_colder" title="Сделать более сдержанным и холодным">❄️ Холоднее</button>
+                      <button type="button" class="smart-chip" data-modify="make_sweeter" title="Сделать мягче и теплее">💖 Мягче</button>
+                      <button type="button" class="smart-chip" data-modify="add_drama" title="Добавить драмы и эмоций">⚡ Драматичнее</button>
+                      <button type="button" class="smart-chip" data-modify="add_secret" title="Добавить мрачную тайну">🤫 Тайна</button>
+                    </div>
+                  </div>
+                  <div class="studio-card-body">
+                    <div class="studio-field">
+                      <label for="studioAppearanceInput">Внешность (Appearance):</label>
+                      <textarea id="studioAppearanceInput" rows="2" placeholder="Опишите лицо, глаза, прическу, одежду, рост..."></textarea>
+                    </div>
+                    <div class="studio-field margin-top-8">
+                      <label for="studioBehaviorInput">Характер и Поведение (Behavior):</label>
+                      <textarea id="studioBehaviorInput" rows="3" placeholder="Характерные особенности, привычки, страхи, цели..."></textarea>
+                    </div>
+                    <div class="studio-field margin-top-8">
+                      <label for="studioSpeechInput">Стиль речи (Speech):</label>
+                      <textarea id="studioSpeechInput" rows="2" placeholder="Манера общения (вежливо, на 'вы', с сарказмом, старинные слова..."></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Card 3: Сценарий и Первое Сообщение -->
+                <div class="studio-card">
+                  <div class="studio-card-header">
+                    <span class="card-title">🎬 Сценарий и Приветствие</span>
+                    <button type="button" id="studioGenerateGreetingVariantsBtn" class="smart-chip highlight-chip">
+                      🎲 3 варианта приветствия
+                    </button>
+                  </div>
+                  <div class="studio-card-body">
+                    <div class="studio-field">
+                      <label for="studioScenarioInput">Сценарий встречи (Локация и завязка сюжета):</label>
+                      <textarea id="studioScenarioInput" rows="2" placeholder="Где и при каких обстоятельствах начинается история..."></textarea>
+                    </div>
+                    
+                    <div class="studio-field margin-top-8">
+                      <div class="field-header-row">
+                        <label for="studioFirstMessageInput">Стартовое сообщение (Greeting):</label>
+                        <div id="greetingVariantsTabs" class="greeting-variants-tabs" style="display: none;">
+                          <button type="button" class="variant-tab-btn active" data-var="0">Вариант 1</button>
+                          <button type="button" class="variant-tab-btn" data-var="1">Вариант 2</button>
+                          <button type="button" class="variant-tab-btn" data-var="2">Вариант 3</button>
+                        </div>
+                      </div>
+                      <textarea id="studioFirstMessageInput" rows="4" placeholder="Реплика персонажа с действиями в *звездочках* и речью в &quot;кавычках&quot;..."></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Live Chat Preview Card -->
+              <div class="studio-right-col">
+                <div class="live-preview-card">
+                  <div class="live-preview-header">
+                    <span class="live-preview-badge">👁️ LIVE CHAT PREVIEW</span>
+                    <span class="live-status-dot"></span>
+                  </div>
+
+                  <div class="live-card-hero">
+                    <div class="live-avatar-wrap">
+                      <div id="studioAvatarPreview" class="live-avatar-img">👤</div>
+                    </div>
+                    <div class="live-hero-info">
+                      <div id="studioPreviewName" class="live-char-name">Имя персонажа</div>
+                      <div id="studioPreviewDesc" class="live-char-desc">Краткое описание появится здесь</div>
+                      <div id="studioPreviewTraits" class="live-traits-badges"></div>
+                    </div>
+                  </div>
+
+                  <div class="live-chat-bubble-area">
+                    <div class="live-msg-role">
+                      <span class="role-green-dot"></span>
+                      <span id="studioPreviewSpeaker">CHARACTER</span>
+                    </div>
+                    <div id="studioPreviewDialogue" class="live-dialogue-bubble">
+                      <em>Напишите идею и нажмите «Создать за 1 клик», чтобы сгенерировать персонажа и увидеть живой предпросмотр диалога...</em>
+                    </div>
+                  </div>
+
+                  <div class="live-preview-actions">
+                    <button id="studioSaveAndChatBtn" type="button" class="btn-studio-primary">
+                      🚀 Сохранить и начать чат
+                    </button>
+                    <button id="studioMakePersonaBtn" type="button" class="btn-studio-secondary" title="Сохранить персонажа и сделать его активной персоной пользователя">
+                      🎭 Сделать моей персоной
+                    </button>
+                    <button id="studioOpenFullEditorBtn" type="button" class="btn-studio-secondary">
+                      ✏️ Детальный редактор (Лорбук / Состояния)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden compatibility elements for existing hooks -->
+            <div style="display: none;">
+              <div id="wizardChatHistory" class="wizard-chat-history"></div>
+              <input id="wizardInput" type="text" />
+              <button id="wizardSendBtn" type="button">Send</button>
+              <p id="wizardFeedback"></p>
+              <button id="wizardFinalizeBtn" type="button" class="btn-finalize-character">Create Character</button>
+            </div>
+          </div>
+
+          <form id="characterForm" style="display:none;" onsubmit="event.preventDefault();">
+            <div class="character-form-header" style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 12px; gap: 8px; flex-wrap: wrap;">
+              <h4 style="margin: 0; white-space: nowrap;">Редактирование персонажа</h4>
+              <div style="display: flex; gap: 8px; margin-left: auto; align-items: center;">
+                <button type="button" id="startCharacterEnhancerBtn" class="btn-purple-gradient" style="padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; gap: 6px; background: #ffffff; color: #000000; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); white-space: nowrap;" title="Глубокий анализ, улучшение и режим 18+">
+                  ✨ Улучшить через ИИ (+18)
+                </button>
+                <button type="button" id="startRefineWizardBtn" class="btn-purple-gradient" style="padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; gap: 6px; flex-shrink: 0; white-space: nowrap; background: rgba(255, 255, 255, 0.08); color: #ffffff;">
+                  🪄 Диалог с Мастером
+                </button>
+              </div>
+            </div>
+            <input id="characterId" type="hidden" />
+
+            <!-- Tab Buttons -->
+            <div class="admin-tabs">
+              <button type="button" class="admin-tab-btn active" data-tab="general"><svg class="feather" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Общее</button>
+              <button type="button" class="admin-tab-btn" data-tab="personality"><svg class="feather" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="18" y1="21" x2="18" y2="16"></line><line x1="18" y1="12" x2="18" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="15" y1="16" x2="21" y2="16"></line></svg> Личность</button>
+              <button type="button" class="admin-tab-btn" data-tab="scenario"><svg class="feather" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg> Сценарий</button>
+              <button type="button" class="admin-tab-btn" data-tab="examples"><svg class="feather" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg> Примеры речи</button>
+              <button type="button" class="admin-tab-btn" data-tab="states-lore"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Лор и Стейты</button>
+            </div>
+
+            <!-- Tab Content: General -->
+            <div class="tab-content active" id="tab-general">
+              <div class="label-with-action">
+                <label>Имя персонажа (Name):</label>
+                <button type="button" class="magic-wand-btn" id="generateNameBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <input id="characterName" type="text" placeholder="Имя (например, Алукард)" required />
+
+              <div class="label-with-action margin-top-10">
+                <label>Аватар персонажа (Avatar):</label>
+              </div>
+              <div style="display: flex; gap: 12px; align-items: center; background: rgba(0,0,0,0.15); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);">
+                <div id="characterAvatarPreview" style="width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--border); background-size: cover; background-position: center; display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--text-muted); background-color: rgba(255,255,255,0.05); flex-shrink: 0;">
+                  👤
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px; flex-grow: 1;">
+                  <input type="file" id="characterAvatarFileInput" accept="image/*" style="display: none;" />
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" id="uploadAvatarBtn" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); color: #ffffff; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">📁 Загрузить файл</button>
+                    <button type="button" id="clearAvatarBtn" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: 600;">🗑 Удалить</button>
+                  </div>
+                  <input type="text" id="characterAvatarUrl" placeholder="или вставьте URL картинки (https://...)" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: rgba(0,0,0,0.2); color: var(--text-primary);" />
+                </div>
+              </div>
+
+              <div class="label-with-action margin-top-10">
+                <label>Краткое описание (One-liner / Summary):</label>
+                <button type="button" class="magic-wand-btn" id="generateDescriptionBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <input id="characterDescription" type="text" placeholder="Краткая фраза (например, Холодный вампир-библиотекарь)" />
+              <p class="field-helper-text">Видна в списке выбора персонажей.</p>
+
+              <div class="label-with-action margin-top-10">
+                <label>Черты характера (Traits):</label>
+                <button type="button" class="magic-wand-btn" id="generateTraitsBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <input id="characterTraits" type="text" placeholder="Черты через запятую (например, Cold, Shy, Expressive)" />
+              <p class="field-helper-text">Влияют на изменение шкал отношений. Нажмите на тег ниже для выбора:</p>
+              
+              <!-- Quick Select Badges -->
+              <div class="traits-badges-container">
+                <span class="trait-badge" data-trait="Cold">Холодный (Cold)</span>
+                <span class="trait-badge" data-trait="Shy">Стеснительный (Shy)</span>
+                <span class="trait-badge" data-trait="Expressive">Эмоциональный (Expressive)</span>
+                <span class="trait-badge" data-trait="Rude">Грубый (Rude)</span>
+                <span class="trait-badge" data-trait="Polite">Вежливый (Polite)</span>
+                <span class="trait-badge" data-trait="Sarcastic">Саркастичный (Sarcastic)</span>
+                <span class="trait-badge" data-trait="Caring">Заботливый (Caring)</span>
+                <span class="trait-badge" data-trait="Proud">Гордый (Proud)</span>
+                <span class="trait-badge" data-trait="Cheerful">Веселый (Cheerful)</span>
+              </div>
+
+              <div class="label-with-action margin-top-10">
+                <label>🎭 Скрытые черты (Hidden Traits):</label>
+              </div>
+              <input id="characterHiddenTraits" type="text" placeholder="Tsundere, Obsessive, Masochist, Volatile..." />
+              <p class="field-helper-text">Скрытые от игрока модификаторы статов и секретные установки поведения бота:</p>
+              
+              <div class="traits-badges-container" id="hiddenTraitsBadgesContainer">
+                <span class="trait-badge hidden-trait-badge" data-trait="Tsundere" title="Доверие < 50% режет Симпатию х0.5; Доверие >= 50% бустит х1.5">🌶️ Tsundere</span>
+                <span class="trait-badge hidden-trait-badge" data-trait="Obsessive" title="Симпатия/Доверие +50%, но падения бьют в 2 раза больнее">🖤 Obsessive</span>
+                <span class="trait-badge hidden-trait-badge" data-trait="Volatile" title="Любые изменения статов усиливаются в 1.6 раза">⚡ Volatile</span>
+                <span class="trait-badge hidden-trait-badge" data-trait="Masochist" title="При росте Страха или падении Симпатии растет Возбуждение/Доверие">⛓️ Masochist</span>
+                <span class="trait-badge hidden-trait-badge" data-trait="Unpredictable" title="Случайная вариация величины изменения (±30–50%)">🎲 Unpredictable</span>
+                <span class="trait-badge hidden-trait-badge" data-trait="Guarded" title="До 60% Доверия приросты урезаны (-40%), затем удваиваются (х2)">🛡️ Guarded</span>
+              </div>
+
+              <label class="margin-top-10-block">Пол и Местоимения (Gender/Pronouns):</label>
+              <select id="characterGender" class="select-wide">
+                <option value="he/him">Male (he/him)</option>
+                <option value="she/her">Female (she/her)</option>
+                <option value="they/them">Non-binary (they/them)</option>
+              </select>
+
+              <label class="margin-top-10-block">Модель ИИ (Model):</label>
+              <select id="characterModelSelect" class="select-wide"></select>
+            </div>
+
+            <!-- Tab Content: Personality -->
+            <div class="tab-content" id="tab-personality">
+              <div class="label-with-action">
+                <label>Внешность (Appearance):</label>
+                <button type="button" class="magic-wand-btn" id="generateAppearanceBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterAppearance" placeholder="Опишите лицо, прическу, одежду, рост, телосложение..."></textarea>
+              <p class="field-helper-text">Например: Высокий бледный мужчина в викторианском сюртуке, алые глаза, длинные черные волосы.</p>
+
+              <div class="label-with-action margin-top-10">
+                <label>Характер и Поведение (Behavior & Habits):</label>
+                <button type="button" class="magic-wand-btn" id="generateBehaviorBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterBehavior" placeholder="Характерные особенности, привычки, страхи, цели персонажа..."></textarea>
+              <p class="field-helper-text">Например: Разговаривает холодно и отстраненно, постоянно поправляет книги. Скрывает свою сущность, но проявляет скрытую заботу о посетителях.</p>
+
+              <div class="label-with-action margin-top-10">
+                <label>Предыстория и Биография (Backstory):</label>
+                <button type="button" class="magic-wand-btn" id="generateBackstoryBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterBackstory" placeholder="Прошлое персонажа, его секреты, биография..."></textarea>
+              <p class="field-helper-text">Например: Стал вампиром три века назад. С тех пор охраняет библиотеку древних фолиантов, оберегая человечество от темного знания.</p>
+
+              <div class="label-with-action margin-top-10">
+                <label>Стиль речи (Speech Style):</label>
+                <button type="button" class="magic-wand-btn" id="generateSpeechStyleBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterSpeech" placeholder="Манера речи (например: говорит вежливо, использует старинные слова, обращается на 'вы')"></textarea>
+              
+              <div class="label-with-action margin-top-10">
+                <label>Системный промпт / Инструкции ИИ (System Prompt Override):</label>
+                <button type="button" class="magic-wand-btn" id="generatePromptBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterPrompt" placeholder="Дополнительные системные указания (например: описывай действия в звездочках *, не говори за пользователя {{user}})"></textarea>
+              <p class="field-helper-text">Инструкции по формату ответов.</p>
+
+              <div class="label-with-action margin-top-10">
+                <label>Промпт для ИИ-генераторов картинок (Image Generation Prompt):</label>
+                <button type="button" class="magic-wand-btn" id="generateImagePromptBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Сгенерировать Промпт</button>
+              </div>
+              <textarea id="characterImagePrompt" placeholder="Готовый английский промпт для Midjourney, Stable Diffusion, NovelAI, Flux..."></textarea>
+              <p class="field-helper-text">Английский промпт со всеми деталями лица, прически, одежды и стиля для генерации аватаров и артов.</p>
+
+              <!-- Hidden original textarea for backwards compatibility processing in JS -->
+              <textarea id="characterPersonality" style="display:none;"></textarea>
+            </div>
+
+            <!-- Tab Content: Scenario -->
+            <div class="tab-content" id="tab-scenario">
+              <div class="label-with-action">
+                <label>Сценарий и Лор комнаты (Scenario):</label>
+                <button type="button" class="magic-wand-btn" id="generateScenarioBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterScenario" placeholder="Опишите стартовую ситуацию, локацию и начальные условия диалога..." style="min-height: 100px;"></textarea>
+              <p class="field-helper-text">Например: {{user}} заходит в темную заброшенную библиотеку в полночь. За столом при свечах сидит {{char}} и читает книгу.</p>
+
+              <div class="label-with-action margin-top-10">
+                <label>Стартовое сообщение (First Message / Greeting):</label>
+                <button type="button" class="magic-wand-btn" id="generateFirstMessageBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              <textarea id="characterFirstMessage" placeholder="Реплика, с которой начнется диалог..." style="min-height: 80px;"></textarea>
+              <p class="field-helper-text">Если пусто, первое сообщение сгенерируется ИИ автоматически при старте.</p>
+
+              <div class="margin-top-10">
+                <label for="characterFirstMessageMode">Кто начинает диалог? (Старт сюжета):</label>
+                <select id="characterFirstMessageMode" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); color: var(--text-primary); margin-top: 4px;">
+                  <option value="assistant">🤖 Персонаж приветствует первым</option>
+                  <option value="user">👤 Пользователь начинает первым (Свой сюжет)</option>
+                  <option value="choice">✨ Выбирать при каждом старте чата</option>
+                </select>
+                <p class="field-helper-text">В режиме «Пользователь начинает» чат откроется пустым, чтобы вы могли отправить первое сообщение и задать сюжет.</p>
+              </div>
+            </div>
+
+            <!-- Tab Content: Examples -->
+            <div class="tab-content" id="tab-examples">
+              <div class="label-with-action">
+                <label>Примеры диалогов (Example Dialogs):</label>
+                <button type="button" class="magic-wand-btn" id="generateExamplesBtn"><svg class="feather" viewBox="0 0 24 24"><line x1="18" y1="2" x2="22" y2="6"></line><path d="M7.5 20.5 19 9l-4-4L3.5 16.5 2 22z"></path></svg> AI Помощник</button>
+              </div>
+              
+              <!-- Dialogue helper shortcuts -->
+              <div class="dialogue-helpers-container">
+                <button type="button" class="dialogue-helper-btn" id="insertStartBtn">Вставить &lt;START&gt;</button>
+                <button type="button" class="dialogue-helper-btn" id="insertCharBtn">Вставить {{char}}:</button>
+                <button type="button" class="dialogue-helper-btn" id="insertUserBtn">Вставить {{user}}:</button>
+              </div>
+
+              <textarea id="characterExampleDialogs" placeholder="Примеры реплик для настройки тона общения..." style="min-height: 220px; font-family: monospace; font-size: 12.5px;"></textarea>
+              <p class="field-helper-text">Помогает модели понять стиль речи персонажа. Используйте макросы {{char}} и {{user}}.</p>
+            </div>
+
+            <!-- Tab Content: States & Lore -->
+            <div class="tab-content" id="tab-states-lore">
+              <div id="coreStatesSection">
+                <h5>Core Custom States</h5>
+                <div id="coreStatesList"></div>
+                <button id="addCoreStateBtn" type="button" class="btn-dashed-add">➕ Add Core Custom State</button>
+              </div>
+
+              <div id="loreBookSection" style="padding-bottom: 24px;">
+                <h5>LoreBook Entries</h5>
+                <div id="loreBookList"></div>
+                <button id="addLoreEntryBtn" type="button" class="btn-dashed-add">➕ Add LoreBook Entry</button>
+              </div>
+
+              <div id="aiRefinerSection">
+                <h5>🪄 AI Character Refiner (Доработка ИИ)</h5>
+                <p class="refiner-desc">Опишите, какие изменения или улучшения вы хотите внести в характер, манеру речи или лор персонажа.</p>
+                <div style="display: flex; gap: 8px;">
+                  <input id="aiRefinerInstruction" type="text" placeholder="Например: сделай его более холодным и добавь легкое заикание" />
+                  <button id="aiRefineBtn" type="button">Улучшить</button>
+                </div>
+                <p id="aiRefinerFeedback"></p>
+              </div>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="admin-footer-actions">
+              <button id="saveCharacterBtn" type="submit">Save</button>
+              <button id="characterFormMakePersonaBtn" type="button" class="btn-studio-secondary" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.18); color: #ffffff;" title="Сделать персоной для пользователя">🎭 Сделать персоной</button>
+              <button id="deleteCharacterBtn" type="button">Delete</button>
+              <p id="adminFeedback" style="margin: 0 0 0 8px; font-size: 12.5px; font-weight: 500; color: #ffffff;"></p>
+            </div>
+          </form>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="debugDialog">
+      <form method="dialog" class="admin-topbar">
+        <h3>🛠️ Debug & TypeSafe Jev System One Monitor</h3>
+        <button type="submit" class="close-dialog-btn">&times;</button>
+      </form>
+
+      <!-- Jev System One Monitor & Diagnostics Banner -->
+      <div id="jevDebugBanner" class="jev-debug-banner">
+        <div class="jev-banner-left">
+          <div class="jev-banner-title">
+            <span class="jev-badge-dot"></span>
+            <strong>🧠 TypeSafe Jev (System One)</strong>
+            <span id="jevStatusPill" class="jev-status-pill">Ready</span>
+          </div>
+          <div id="jevBannerStats" class="jev-banner-stats">
+            Модель: <code id="jevActiveModelName">~typesafe/jev-latest</code> &bull; Запросов: <span id="jevCount">0</span> &bull; Ср. скорость: <span id="jevAvgLatency">0ms</span>
+          </div>
+        </div>
+        <div class="jev-banner-right">
+          <button id="testJevBtn" type="button" class="btn-test-jev" title="Отправить диагностический запрос к Jev">🧪 Тест связи Jev</button>
+        </div>
+      </div>
+      <div id="jevTestResult" class="jev-test-result" style="display: none;"></div>
+
+      <div class="debug-filter-bar">
+        <button type="button" class="debug-filter-btn active" data-filter="all">Все логи</button>
+        <button type="button" class="debug-filter-btn" data-filter="jev">🧠 Jev System One</button>
+        <button type="button" class="debug-filter-btn" data-filter="dialogue">💬 Чат</button>
+        <button type="button" class="debug-filter-btn" data-filter="prompt">🔍 Live Промпт</button>
+      </div>
+
+      <div class="debug-layout">
+        <div class="debug-list-panel">
+          <ul id="debugLogList" class="admin-list"></ul>
+        </div>
+        <div id="debugLogDetail" class="debug-detail-panel">
+          Выберите запрос из списка для просмотра деталей.
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="promptWizardDialog">
+      <header class="dialog-header">
+        <h3>System Prompt Wizard</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('promptWizardDialog').close()">&times;</button>
+      </header>
+      <div class="prompt-wizard-body">
+        <p class="prompt-wizard-desc">Опишите, какие правила, ограничения или поведение вы хотите добавить для ИИ. Помощник поможет составить профессиональный системный промпт.</p>
+        <div id="promptWizardHistory" class="prompt-wizard-history"></div>
+        <div class="prompt-wizard-input-row">
+          <input id="promptWizardInput" type="text" placeholder="Например: общайся лаконично, используй смайлики..." />
+          <button id="promptWizardSendBtn" type="button" class="chat-header-btn">Отправить</button>
+        </div>
+        <p id="promptWizardFeedback"></p>
+        <button id="promptWizardApplyBtn" type="button" class="btn-apply-gold-gradient">Применить промпт</button>
+      </div>
+    </dialog>
+
+    <dialog id="duoCharSelectDialog">
+      <header class="dialog-header">
+        <h3>👥 Create Duo Chat</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('duoCharSelectDialog').close()">&times;</button>
+      </header>
+      <div class="duo-select-body">
+        <p class="duo-select-desc">Select a second character to join the chat. Both characters will interact with you and each other.</p>
+        <label class="duo-select-label">
+          Second Character:
+          <select id="duoCharSelect" class="select-wide"></select>
+        </label>
+        <button id="duoCharConfirmBtn" type="button" class="btn-purple-gradient">Create Duo Chat</button>
+      </div>
+    </dialog>
+
+    <dialog id="gmSceneDialog">
+      <header class="dialog-header">
+        <h3 id="gmSceneDialogTitle">🎭 Create GM Scene</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('gmSceneDialog').close()">&times;</button>
+      </header>
+      <div class="dialog-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-width: 500px; width: 90vw;">
+        <label>
+          Scene Name:
+          <input type="text" id="gmSceneNameInput" placeholder="e.g. Tavern Brawl" style="width: 100%; box-sizing: border-box;" />
+        </label>
+        <label>
+          🎬 Сценарий и завязка комнаты (Room Scenario & Setting):
+          <textarea id="gmSceneScenarioInput" rows="3" placeholder="Опишите сюжет, текущую обстановку, локацию и завязку событий... Персонажи будут адаптироваться под этот сценарий, сохраняя свой характер." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+        </label>
+        <details style="border: 1px solid var(--glass-border); padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.15);">
+          <summary style="cursor: pointer; font-weight: 600; font-size: 12px; color: var(--text-secondary);">⚙️ Системные правила Гейм-Мастера / Инструкции отыгрыша (GM System Prompt)</summary>
+          <div style="margin-top: 8px;">
+            <textarea id="gmScenePromptInput" rows="3" placeholder="Инструкции Ведущему: формат ответов, стиль повествования, правила оформления..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+          </div>
+        </details>
+        
+        <div style="border-top: 1px solid var(--glass-border); padding-top: 10px;">
+          <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary);">Scene NPCs / Participants</h4>
+          
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <button id="gmSceneAddNpcBtn" type="button" class="btn-create-small" style="flex: 1; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-primary); padding: 6px; border-radius: 6px; cursor: pointer; font-size: 11px;">+ Create NPC</button>
+            <button id="gmSceneImportNpcBtn" type="button" class="btn-create-small" style="flex: 1; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #ffffff; padding: 6px; border-radius: 6px; cursor: pointer; font-size: 11px;">📥 Import Character</button>
+          </div>
+
+          <!-- NPC list -->
+          <div id="gmSceneNpcList" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; padding: 4px; border: 1px solid var(--glass-border); border-radius: 8px; background: rgba(0,0,0,0.2);">
+            <!-- List of NPCs in scene with edit/delete buttons -->
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button id="gmSceneSaveBtn" type="button" class="btn-purple-gradient" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none;">Save Scene</button>
+          <button id="gmSceneDeleteBtn" type="button" class="btn-danger" style="display: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.1); color: #f87171;">Delete Scene</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="gmSceneImportDialog" style="z-index: 101;">
+      <header class="dialog-header">
+        <h3>📥 Import Existing Character</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('gmSceneImportDialog').close()">&times;</button>
+      </header>
+      <div class="dialog-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-width: 400px; width: 90vw;">
+        <label>
+          Select Character:
+          <select id="gmSceneImportSelect" class="select-wide" style="width: 100%; box-sizing: border-box; padding: 8px; background: rgba(0,0,0,0.3); color: var(--text-primary); border-radius: 6px; border: 1px solid var(--border);"></select>
+        </label>
+        <button id="gmSceneImportConfirmBtn" type="button" class="btn-purple-gradient" style="padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; width: 100%;">Import</button>
+      </div>
+    </dialog>
+
+    <dialog id="gmNpcEditDialog" style="z-index: 101;">
+      <header class="dialog-header">
+        <h3 id="gmNpcEditTitle">👤 Character / NPC Customization</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('gmNpcEditDialog').close()">&times;</button>
+      </header>
+      <div class="dialog-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-width: 520px; width: 90vw; max-height: 80vh; overflow-y: auto;">
+        <div style="display: flex; gap: 10px;">
+          <label style="flex: 2;">
+            Имя персонажа (Name):
+            <input type="text" id="gmNpcNameInput" placeholder="например: Алхимик Элрик" style="width: 100%; box-sizing: border-box;" />
+          </label>
+          <label style="flex: 1;">
+            Пол / Местоимения:
+            <select id="gmNpcGenderSelect" style="width: 100%; box-sizing: border-box; padding: 8px; background: rgba(0,0,0,0.3); color: var(--text-primary); border-radius: 6px; border: 1px solid var(--border);">
+              <option value="he/him">Мужской (он/его)</option>
+              <option value="she/her">Женский (она/ее)</option>
+              <option value="they/them">Нейтральный (они/их)</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          📢 Индивидуальный стиль речи и голос (Speech Style & Voice):
+          <textarea id="gmNpcSpeechInput" rows="2" placeholder="Опишите уникальный манеру речи, интонации, слова-паразиты, запреты, особенности тона..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+        </label>
+        <label>
+          🧠 Характер и темперамент (Personality & Temperament):
+          <textarea id="gmNpcPersonalityInput" rows="2" placeholder="Черты характера, эмоциональность, отношение к людям..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+        </label>
+        <label>
+          🎭 Привычки и поведение (Behavior & Habits):
+          <textarea id="gmNpcBehaviorInput" rows="2" placeholder="Жестикуляция, особенности поведения в стрессе, привычки..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+        </label>
+        <label>
+          📝 Роль и описание (Description / Role):
+          <textarea id="gmNpcDescInput" rows="2" placeholder="Кто этот персонаж, его роль в локации..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+        </label>
+        <details style="border: 1px solid var(--glass-border); padding: 8px; border-radius: 8px; background: rgba(0,0,0,0.15);">
+          <summary style="cursor: pointer; font-weight: 600; font-size: 12px; color: var(--text-secondary);">⚙️ Дополнительные параметры (Внешность, Предыстория, Инд. промпт)</summary>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
+            <label>
+              👗 Внешность и детали (Appearance):
+              <textarea id="gmNpcAppearanceInput" rows="2" placeholder="Одежда, рост, характерные приметы..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+            </label>
+            <label>
+              📜 Предыстория (Backstory):
+              <textarea id="gmNpcBackstoryInput" rows="2" placeholder="Прошлое персонажа, мотивация..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+            </label>
+            <label>
+              ⚙️ Индивидуальный системный промпт (System Prompt Override):
+              <textarea id="gmNpcSystemPromptInput" rows="2" placeholder="Специфические инструкции отыгрыша персонажа..." style="width: 100%; box-sizing: border-box; resize: vertical;"></textarea>
+            </label>
+          </div>
+        </details>
+        <button id="gmNpcSaveBtn" type="button" class="btn-purple-gradient" style="padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; width: 100%;">Сохранить персонажа</button>
+      </div>
+    </dialog>
+
+    <dialog id="characterRefineDialog" style="z-index: 102;">
+      <header class="dialog-header">
+        <h3 id="characterRefineTitle">🧙‍♂️ ИИ-Мастер доработки персонажа</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('characterRefineDialog').close()">&times;</button>
+      </header>
+      <div class="dialog-body" style="padding: 16px; display: flex; flex-direction: column; gap: 12px; max-width: 550px; width: 90vw; max-height: 80vh;">
+        <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">Опишите ИИ-Мастеру, что нужно поправить, изменить или дополнить в персонаже (например: <i>«Сделай манеру речи более дерзкой»</i>, <i>«Добавь в привычки щелкать пальцами»</i>).</p>
+        <div id="characterRefineChatHistory" class="wizard-chat-history" style="flex: 1; max-height: 320px; min-height: 180px; overflow-y: auto; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 8px;"></div>
+        <div class="wizard-input-row" style="display: flex; gap: 8px;">
+          <input id="characterRefineInput" type="text" placeholder="Что поправить в персонаже?..." style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); background: rgba(0,0,0,0.3); color: var(--text-primary);" />
+          <button id="characterRefineSendBtn" type="button" class="btn-purple-gradient" style="padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none;">Отправить</button>
+        </div>
+        <p id="characterRefineFeedback" style="font-size: 11px; color: var(--text-muted); margin: 0; min-height: 16px;"></p>
+        <button id="characterRefineApplyBtn" type="button" class="btn-purple-gradient" style="display: none; padding: 10px; border-radius: 8px; font-weight: bold; cursor: pointer; border: none; width: 100%; font-size: 13px;">✨ Применить изменения в форму</button>
+      </div>
+    </dialog>
+
+    <!-- User Persona Dialog (Janitor AI Style) -->
+    <dialog id="personaDialog" class="janitor-persona-modal">
+      <header class="dialog-header janitor-persona-header">
+        <div class="janitor-search-row">
+          <div class="search-input-wrapper">
+            <svg class="feather search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input id="searchPersonaInput" type="text" placeholder="Search personas..." />
+          </div>
+          <button id="headerImportPersonaFromCharBtn" type="button" class="btn-janitor-secondary" title="Создать персону на основе существующего персонажа" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); color: #ffffff; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">🎭 Из персонажа</button>
+          <button id="headerNewPersonaBtn" type="button" class="btn-janitor-accent">+ New persona</button>
+          <button type="button" class="close-dialog-btn" onclick="document.getElementById('personaDialog').close()">&times;</button>
+        </div>
+      </header>
+
+      <div id="personaListContainer" class="janitor-persona-body">
+        <!-- Main Card List View -->
+        <div id="personaCardView" class="persona-cards-wrapper">
+          <ul id="personaCardList" class="persona-cards-grid"></ul>
+          <ul id="personaList" class="admin-list" style="display:none;"></ul>
+        </div>
+
+        <!-- Inline Editor View (hidden by default) -->
+        <div id="personaEditFormContainer" class="persona-edit-form-panel" style="display: none;">
+          <div class="edit-form-header">
+            <button id="backToPersonaListBtn" type="button" class="btn-icon-back">← Back to personas</button>
+            <h4 id="personaFormTitle">Edit Persona</h4>
+          </div>
+          <form id="personaForm" onsubmit="event.preventDefault()">
+            <input id="personaId" type="hidden" />
+            
+            <label class="form-field-block">
+              <span class="form-label-title">Persona Name:</span>
+              <input id="personaNameInput" type="text" placeholder="e.g. Riko" required class="input-wide" />
+            </label>
+
+            <label class="form-field-block">
+              <span class="form-label-title">User Name (in chats):</span>
+              <input id="personaUserNameInput" type="text" placeholder="e.g. Riko" required class="input-wide" />
+            </label>
+
+            <label class="form-field-block">
+              <span class="form-label-title">Pronouns:</span>
+              <select id="personaPronounsSelect" class="select-wide">
+                <option value="he/him">He / Him</option>
+                <option value="she/her">She / Her</option>
+                <option value="they/them">They / Them</option>
+              </select>
+            </label>
+
+            <label class="form-field-block-last">
+              <span class="form-label-title">Description / Personality (Who are you?):</span>
+              <textarea id="personaDescriptionInput" placeholder="Describe your background, appearance, and personality traits..." class="textarea-wide-tall"></textarea>
+            </label>
+
+            <div class="form-footer-actions">
+              <button id="savePersonaBtn" type="submit" class="btn-janitor-accent">Save Persona</button>
+              <button id="deletePersonaBtn" type="button" class="btn-danger">Delete</button>
+            </div>
+            <p id="personaFeedback"></p>
+          </form>
+        </div>
+      </div>
+
+      <footer class="janitor-persona-footer">
+        <div class="playing-as-info">
+          Playing as <strong id="playingAsPersonaName">Default Persona</strong>
+        </div>
+        <div class="footer-btn-group">
+          <button id="footerImportPersonaFromCharBtn" type="button" class="btn-footer-create" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.18); color: #ffffff;" title="Создать персону на основе персонажа">🎭 Из персонажа</button>
+          <button id="createNewPersonaBtn" type="button" class="btn-footer-create">+ Create a new persona</button>
+          <button type="button" class="btn-done-modal" onclick="document.getElementById('personaDialog').close()">Done</button>
+        </div>
+      </footer>
+    </dialog>
+
+    <!-- Dialog to select a character to convert into persona -->
+    <dialog id="personaFromCharSelectDialog" class="janitor-persona-modal" style="max-width: 580px; width: 90%;">
+      <header class="dialog-header janitor-persona-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">🎭</span>
+          <h3 style="margin: 0; font-size: 15px;">Создать персону из персонажа</h3>
+        </div>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('personaFromCharSelectDialog').close()">&times;</button>
+      </header>
+      <div style="padding: 16px; max-height: 65vh; overflow-y: auto;">
+        <p style="font-size: 12px; color: var(--text-secondary); margin-top: 0; margin-bottom: 14px;">
+          Выберите персонажа. Его имя, внешность, характер и стиль речи станут описанием вашей персоны в диалогах (в макросе <code>{{user}}</code>):
+        </p>
+        <ul id="personaFromCharList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
+      </div>
+    </dialog>
+
+    <dialog id="summaryDialog" class="janitor-persona-modal codex-modal" style="max-width: 820px; width: 95%;">
+      <header class="dialog-header janitor-persona-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: rgba(10, 10, 12, 0.85); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 20px;">🧠</span>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Живой Кодекс Сессии & Память Сюжета</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Глубокая структурированная непрерывность (Setting, Relationships, Dynamics, Plot Hooks)</span>
+          </div>
+        </div>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('summaryDialog').close()">&times;</button>
+      </header>
+
+      <!-- Tabs Bar -->
+      <div class="codex-tabs-bar" style="display: flex; gap: 4px; padding: 8px 18px 0; background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--border);">
+        <button id="tabCodexStructuredBtn" type="button" class="codex-tab active">
+          ✨ Живой Кодекс (Structured)
+        </button>
+        <button id="tabCodexSummaryBtn" type="button" class="codex-tab">
+          📝 Текстовое Саммари (Raw Summary)
+        </button>
+        <button id="tabCodexJsonBtn" type="button" class="codex-tab">
+          { } Сырой JSON
+        </button>
+      </div>
+
+      <div class="janitor-persona-body" style="padding: 16px 18px; max-height: 75vh; overflow-y: auto;">
+        
+        <!-- TAB 1: Structured Codex View -->
+        <div id="codexStructuredView" class="codex-view-content">
+          <!-- Top Action Bar -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span id="codexStatusBadge" class="model-badge" style="background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.16); color: #ffffff; font-size: 11px;">● Не синхронизировано</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button id="btnAiUpdateCodex" type="button" class="btn-janitor-accent" style="font-size: 12px; padding: 6px 14px; background: rgba(255, 255, 255, 0.12); color: white; border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 6px;" title="Проанализировать диалог и обновить кодекс через ИИ">
+                <span>✨ Обновить через ИИ</span>
+              </button>
+              <button id="btnSaveCodex" type="button" class="btn-footer-create" style="font-size: 12px; padding: 6px 14px;">
+                💾 Сохранить
+              </button>
+            </div>
+          </div>
+
+          <!-- Current Status Box -->
+          <div class="codex-section-card" style="margin-bottom: 12px; padding: 10px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">⚡ Текущее положение дел (Current Situation Status):</label>
+            <input id="codexCurrentStatusInput" type="text" placeholder="Например: Прячутся в таверне после побега от городской стражи..." style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; color: var(--text-primary); font-size: 12.5px;" />
+          </div>
+
+          <!-- Setting & Atmosphere Grid -->
+          <div class="codex-section-card" style="margin-bottom: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <div style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>📍 Сеттинг, Локация и Атмосфера</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div>
+                <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Локация / Место:</label>
+                <input id="codexLocationInput" type="text" placeholder="Например: Таверна 'Черный Лес', комната на 2 этаже" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Время / Эпоха:</label>
+                <input id="codexTimeInput" type="text" placeholder="Например: Глубокая ночь, время до рассвета" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Атмосфера и ощущения (Sensory details):</label>
+                <input id="codexAtmosphereInput" type="text" placeholder="Например: За окном шумит ливень, в комнате тепло от камина, запах сосновой смолы" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+              </div>
+              <div style="grid-column: span 2;">
+                <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Законы мира / Ограничения (через запятую):</label>
+                <input id="codexWorldRulesInput" type="text" placeholder="Например: Магия оставляет след, связь заблокирована аномалией" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Characters and States -->
+          <div class="codex-section-card" style="margin-bottom: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span>👥 Состояния персонажей и Отношения</span>
+              </span>
+              <button id="btnAddCodexCharBtn" type="button" class="chat-header-btn" style="font-size: 11px; padding: 2px 8px;">+ Добавить персонажа</button>
+            </div>
+            <div id="codexCharactersList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <!-- Intimate & Romantic Dynamics -->
+          <div class="codex-section-card" style="margin-bottom: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <div style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+              <span>💖 Интимная & Эмоциональная Динамика</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div>
+                <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Баланс сил и Стадия близости (Dynamics):</label>
+                <input id="codexIntimateDynamicsInput" type="text" placeholder="Например: Растущее доверие, неловкое смущение при взгляде, скрываемое влечение" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Границы и табу (Boundaries, через запятую):</label>
+                  <input id="codexBoundariesInput" type="text" placeholder="Без грубости, табу на прошлое семьи" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+                </div>
+                <div>
+                  <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Предпочтения и триггеры (Preferences, через запятую):</label>
+                  <input id="codexPreferencesInput" type="text" placeholder="Шепот на ухо, поглаживание по волосам" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+                </div>
+              </div>
+              <div>
+                <label style="display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">Недавние романтические / интимные события:</label>
+                <input id="codexRecentIntimateEventsInput" type="text" placeholder="Например: Держались за руки во время побега, перевязал рану" style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 6px; padding: 6px 9px; color: var(--text-primary); font-size: 12px;" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Unresolved Plot Threads -->
+          <div class="codex-section-card" style="margin-bottom: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <div style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+              <span>📌 Неразрешенные сюжетные нити, обещания и тайны</span>
+            </div>
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+              <input id="newCodexThreadInput" type="text" placeholder="Добавить нить сюжета (напр.: Кто передал страже записку?)" class="state-input-small" style="flex: 1; font-size: 12px;" />
+              <button id="addCodexThreadBtn" type="button" class="chat-header-btn">+ Добавить</button>
+            </div>
+            <ul id="codexThreadsList" style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px;"></ul>
+          </div>
+
+          <!-- Key Story Events -->
+          <div class="codex-section-card" style="margin-bottom: 12px; padding: 12px 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 12.5px; font-weight: 600; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span>📜 Ключевые вехи сюжета (Key Events)</span>
+              </span>
+              <button id="btnAddCodexEventBtn" type="button" class="chat-header-btn" style="font-size: 11px; padding: 2px 8px;">+ Добавить событие</button>
+            </div>
+            <div id="codexEventsList" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          </div>
+        </div>
+
+        <!-- TAB 2: Raw Story Summary View -->
+        <div id="codexSummaryView" class="codex-view-content" style="display: none;">
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 10px 0;">
+            Классический текстовый пересказ сюжета (Story Summary). Передается в системный контекст для сохранения общей хронологии.
+          </p>
+          <label class="form-field-block" style="margin-bottom: 12px;">
+            <span class="form-label-title" style="display: flex; justify-content: space-between;">
+              <span>Текст Саммари сюжета:</span>
+              <span id="summaryStatusBadge" style="font-weight: normal; color: var(--text-secondary); font-size: 11px;"></span>
+            </span>
+            <textarea id="summaryTextInput" placeholder="Саммари еще не создано..." class="textarea-wide-tall" style="height: 220px; font-size: 13px; line-height: 1.5;"></textarea>
+          </label>
+          <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+            <div style="display: flex; gap: 8px;">
+              <button id="forceGenerateSummaryBtn" type="button" class="btn-janitor-accent" style="font-size: 12px; padding: 6px 12px;">🔄 Сгенерировать заново</button>
+              <button id="resetCharacterPersonalityBtn" type="button" class="btn-janitor-accent" style="font-size: 12px; padding: 6px 12px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #ffffff; border-radius: 6px; cursor: pointer;">✨ Сбросить эмоции к базовым</button>
+            </div>
+            <button id="saveSummaryBtn" type="button" class="btn-footer-create" style="font-size: 12px; padding: 6px 14px;">💾 Сохранить саммари</button>
+          </div>
+        </div>
+
+        <!-- TAB 3: Raw JSON View -->
+        <div id="codexJsonView" class="codex-view-content" style="display: none;">
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 10px 0;">
+            Прямое редактирование JSON структурированной памяти сессии (полный аналог session_memory.json).
+          </p>
+          <textarea id="codexJsonInput" class="textarea-wide-tall" style="height: 320px; font-family: monospace; font-size: 12px; line-height: 1.4;"></textarea>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+            <button id="btnApplyCodexJson" type="button" class="btn-footer-create" style="font-size: 12px; padding: 6px 14px;">💾 Применить JSON</button>
+          </div>
+        </div>
+
+        <p id="summaryFeedbackMsg" style="font-size: 11px; margin-top: 8px; margin-bottom: 0; min-height: 14px; color: var(--accent, #ffffff);"></p>
+      </div>
+    </dialog>
+
+    <dialog id="worldLoreDialog" class="janitor-persona-modal" style="max-width: 720px; width: 94%;">
+      <header class="dialog-header janitor-persona-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(255, 255, 255, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <h3 style="margin: 0; font-size: 15px; display: flex; align-items: center; gap: 6px; color: #ffffff;">🌍 Энциклопедия & Лор Мира (World Lore Compendium)</h3>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('worldLoreDialog').close()">&times;</button>
+      </header>
+
+      <div class="janitor-persona-body" style="padding: 16px; max-height: 78vh; overflow-y: auto;">
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 14px 0;">
+          Каждая страна, город, закон магии или артефакт отображается **в виде отдельной аккуратной карточки**. Все они автоматически индексируются в RAG, чтобы ИИ мгновенно помнил всё устройство мира!
+        </p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <button id="rebuildWorldLoreBtn" type="button" class="btn-janitor-accent" style="font-size: 12px; padding: 8px 14px; background: #ffffff; color: #000000; font-weight: 700; cursor: pointer; border: none; border-radius: 6px;">✨ Сгенерировать карточки мира из диалога</button>
+        </div>
+
+        <!-- 🏰 LOCATIONS CATEGORY -->
+        <div class="world-lore-category" style="margin-bottom: 18px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 13px; color: var(--text-primary);">🏰 Страны, Королевства & Города</h4>
+            <button id="addLocationLoreBtn" type="button" class="chat-header-btn" style="font-size: 11px; padding: 3px 8px;">+ Добавить локацию</button>
+          </div>
+          <div id="worldLoreLocationsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- 🔮 RULES CATEGORY -->
+        <div class="world-lore-category" style="margin-bottom: 18px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 13px; color: var(--text-primary);">🔮 Магия, Правила Мира & Законы</h4>
+            <button id="addRuleLoreBtn" type="button" class="chat-header-btn" style="font-size: 11px; padding: 3px 8px;">+ Добавить правило</button>
+          </div>
+          <div id="worldLoreRulesList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- 🛡️ FACTIONS CATEGORY -->
+        <div class="world-lore-category" style="margin-bottom: 18px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 13px; color: var(--text-primary);">🛡️ Фракции, Гильдии & Кланы</h4>
+            <button id="addFactionLoreBtn" type="button" class="chat-header-btn" style="font-size: 11px; padding: 3px 8px;">+ Добавить фракцию</button>
+          </div>
+          <div id="worldLoreFactionsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <!-- 🗡️ ITEMS CATEGORY -->
+        <div class="world-lore-category" style="margin-bottom: 18px; padding: 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h4 style="margin: 0; font-size: 13px; color: var(--text-primary);">🗡️ Артефакты & Реликвии</h4>
+            <button id="addItemLoreBtn" type="button" class="chat-header-btn" style="font-size: 11px; padding: 3px 8px;">+ Добавить артефакт</button>
+          </div>
+          <div id="worldLoreItemsList" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 16px;">
+          <button id="saveWorldLoreBtn" type="button" class="btn-footer-create" style="font-size: 12px; padding: 8px 16px;">💾 Сохранить и проиндексировать в RAG</button>
+          <button type="button" class="btn-done-modal" onclick="document.getElementById('worldLoreDialog').close()">Закрыть</button>
+        </div>
+        <p id="worldLoreFeedbackMsg" style="font-size: 11px; margin-top: 8px; margin-bottom: 0; min-height: 14px; color: var(--text-primary);"></p>
+      </div>
+    </dialog>
+
+    <!-- Character Catalog Dialog (Curated & Chub AI) -->
+    <dialog id="characterCatalogDialog" class="character-catalog-dialog">
+      <div class="catalog-modal-container">
+        <!-- Header -->
+        <header class="catalog-header">
+          <div class="catalog-header-title-wrap">
+            <div class="catalog-header-icon-box">🧭</div>
+            <div class="catalog-header-text">
+              <h2 class="catalog-header-title">Каталог персонажей</h2>
+              <p class="catalog-header-sub">Готовые авторские карточки и поиск по мировой базе Chub AI</p>
+            </div>
+          </div>
+          <button type="button" class="close-dialog-btn" id="closeCatalogDialogBtn" title="Закрыть">&times;</button>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="catalog-tabs-nav" id="catalogTabsNav">
+          <button type="button" class="catalog-tab-btn active" id="catalogTabCuratedBtn" data-tab="curated">
+            <span class="tab-icon">⭐</span>
+            <span class="tab-title">Рекомендуемые</span>
+            <span class="tab-pill">Готово</span>
+          </button>
+          <button type="button" class="catalog-tab-btn" id="catalogTabChubBtn" data-tab="chub">
+            <span class="tab-icon">🌐</span>
+            <span class="tab-title">Поиск Chub AI</span>
+            <span class="tab-pill">Онлайн</span>
+          </button>
+          <button type="button" class="catalog-tab-btn" id="catalogTabUrlBtn" data-tab="url">
+            <span class="tab-icon">🔗</span>
+            <span class="tab-title">Импорт по ссылке / файлу</span>
+          </button>
+        </nav>
+
+        <!-- Tab 1: Curated Showcase -->
+        <section class="catalog-tab-content active" id="catalogTabCuratedContent">
+          <div class="catalog-filter-bar">
+            <div class="catalog-genre-chips" id="curatedGenreChips">
+              <button type="button" class="genre-chip active" data-genre="all">Все жанры</button>
+              <button type="button" class="genre-chip" data-genre="cyberpunk">⚡ Киберпанк</button>
+              <button type="button" class="genre-chip" data-genre="fantasy">⚔️ Фэнтези</button>
+              <button type="button" class="genre-chip" data-genre="detective">🔍 Детектив</button>
+              <button type="button" class="genre-chip" data-genre="scifi">🚀 Космоопера</button>
+              <button type="button" class="genre-chip" data-genre="anime">🎨 Аниме / Слайс</button>
+              <button type="button" class="genre-chip" data-genre="postapoc">⚙️ Постапокалипсис</button>
+              <button type="button" class="genre-chip" data-genre="thriller">🎭 Триллер</button>
+            </div>
+            <div class="catalog-search-inline-wrap">
+              <input type="search" id="curatedSearchInput" class="catalog-search-input" placeholder="Поиск среди рекомендуемых..." />
+            </div>
+          </div>
+          <div class="catalog-scroll-area">
+            <div class="catalog-cards-grid" id="curatedCardsGrid"></div>
+          </div>
+        </section>
+
+        <!-- Tab 2: Chub AI Search -->
+        <section class="catalog-tab-content" id="catalogTabChubContent" style="display: none;">
+          <div class="catalog-search-controls">
+            <div class="catalog-search-input-wrap">
+              <input type="search" id="chubSearchInput" class="catalog-search-input" placeholder="Поиск персонажей в Chub AI (например: Alice, Cyberpunk, Gothic, Detective)..." />
+              <button type="button" id="chubSearchSubmitBtn" class="catalog-btn-primary">
+                <span>🔍 Поиск</span>
+              </button>
+            </div>
+            <div class="chub-filter-row">
+              <div class="chub-filter-item">
+                <label for="chubSortSelect">Сортировка:</label>
+                <select id="chubSortSelect" class="catalog-select">
+                  <option value="star_count" selected>⭐ По популярности (звёзды)</option>
+                  <option value="last_activity_at">🕒 Недавно обновленные</option>
+                  <option value="created_at">✨ Новинки</option>
+                </select>
+              </div>
+              <div class="chub-filter-item">
+                <label class="chub-checkbox-label">
+                  <input type="checkbox" id="chubNsfwToggle" />
+                  <span>Включать NSFW (18+)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="catalog-scroll-area">
+            <div id="chubLoadingSpinner" class="catalog-loading-state" style="display: none;">
+              <div class="catalog-spinner-anim"></div>
+              <span>Поиск персонажей в базе Chub AI...</span>
+            </div>
+            <div id="chubEmptyState" class="catalog-empty-state" style="display: none;">
+              <span class="empty-icon">🔍</span>
+              <p class="empty-title">Ничего не найдено</p>
+              <p class="empty-hint">Попробуйте ввести другое имя, жанр или ключевое слово (на английском).</p>
+            </div>
+            <div id="chubErrorState" class="catalog-error-state" style="display: none;">
+              <span class="error-icon">⚠️</span>
+              <p id="chubErrorMessage">Не удалось загрузить данные из Chub AI.</p>
+              <button type="button" id="chubRetryBtn" class="catalog-btn-secondary">Повторить попытку</button>
+            </div>
+            <div class="catalog-cards-grid" id="chubCardsGrid"></div>
+            <!-- Pagination Controls -->
+            <div class="catalog-pagination-bar" id="chubPaginationBar" style="display: none;">
+              <button type="button" id="chubPrevPageBtn" class="catalog-page-btn" title="Предыдущая страница">
+                <span>◀ Назад</span>
+              </button>
+              <div class="catalog-page-indicator">
+                <span>Страница</span>
+                <span id="chubCurrentPageNum" class="page-num-highlight">1</span>
+                <span>из</span>
+                <span id="chubTotalPagesNum" class="page-num-total">1</span>
+              </div>
+              <button type="button" id="chubNextPageBtn" class="catalog-page-btn" title="Следующая страница">
+                <span>Вперед ▶</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tab 3: URL & File Import -->
+        <section class="catalog-tab-content" id="catalogTabUrlContent" style="display: none;">
+          <div class="catalog-import-container">
+            <!-- Direct URL Card -->
+            <div class="catalog-import-card">
+              <div class="import-card-header">
+                <span class="import-icon">🔗</span>
+                <div class="import-card-header-text">
+                  <h4>Импорт по прямой ссылке Chub AI</h4>
+                  <p>Вставьте ссылку на страницу персонажа, и мы мгновенно загрузим карточку</p>
+                </div>
+              </div>
+              <div class="import-input-group">
+                <input type="url" id="chubUrlInput" class="catalog-search-input" placeholder="https://chub.ai/characters/Anonymous/alice-89fca9a6" />
+                <button type="button" id="chubUrlDownloadBtn" class="catalog-btn-primary">
+                  <span>Загрузить карточку</span>
+                </button>
+              </div>
+              <div id="chubUrlStatus" class="chub-url-status" style="display: none;"></div>
+              <p class="import-subtext">Поддерживаются ссылки формата <code>chub.ai/characters/автор/имя</code> и <code>characterhub.org/characters/...</code></p>
+            </div>
+
+            <!-- File Drag & Drop Card -->
+            <div class="catalog-import-card">
+              <div class="import-card-header">
+                <span class="import-icon">📁</span>
+                <div class="import-card-header-text">
+                  <h4>Загрузка файла карточки с устройства</h4>
+                  <p>Поддерживаются Character Card PNG (с метаданными) и JSON V1/V2/V3</p>
+                </div>
+              </div>
+              <div class="catalog-dropzone" id="catalogDropZone">
+                <input type="file" id="catalogFileInput" accept=".png,.json,.card,.chub,image/png,application/json" style="display: none;" />
+                <div class="dropzone-content">
+                  <span class="dropzone-icon">📥</span>
+                  <p class="dropzone-title">Перетащите сюда файл карточки персонажа</p>
+                  <p class="dropzone-subtitle">.PNG (Chub / Tavern) или .JSON</p>
+                  <button type="button" id="catalogSelectFileBtn" class="catalog-btn-secondary">Выбрать файл с диска</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </dialog>
+
+    <!-- Character Card Import & Adaptation Dialog -->
+    <dialog id="cardImportDialog" class="card-import-dialog">
+      <form method="dialog" class="admin-topbar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">📥</span>
+          <h3 style="margin: 0; font-size: 15px;">Импорт карточки персонажа (Chub AI / Tavern)</h3>
+        </div>
+        <button type="button" class="close-dialog-btn" id="closeCardImportBtn">&times;</button>
+      </form>
+
+      <div class="card-import-body">
+        <!-- Top Info Banner & Preview -->
+        <div class="card-import-hero">
+          <div class="card-import-avatar-wrap">
+            <div id="cardImportAvatarPreview" class="card-import-avatar">👤</div>
+          </div>
+          <div class="card-import-details">
+            <div class="card-import-title-row">
+              <h4 id="cardImportName" class="card-import-name">Имя персонажа</h4>
+              <span id="cardImportFormatBadge" class="badge-format">PNG V2 Card</span>
+            </div>
+            <p id="cardImportDesc" class="card-import-desc">Краткое описание...</p>
+            <div class="card-import-meta-row">
+              <span id="cardImportLoreBadge" class="badge-meta">📚 0 записей лорбука</span>
+              <span id="cardImportAltGreetingsBadge" class="badge-meta">💬 0 альт. приветствий</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AI Adaptation Settings & Options -->
+        <div class="card-import-section">
+          <div class="card-import-section-header">
+            <span class="card-import-section-title">✨ Настройки ИИ-адаптации под русский язык</span>
+          </div>
+          <div class="card-import-config-row">
+            <div class="card-import-field" style="flex: 1;">
+              <label for="cardImportModelSelect">Модель для перевода и адаптации:</label>
+              <select id="cardImportModelSelect" class="select-wide"></select>
+            </div>
+          </div>
+          <p class="card-import-help-text">
+            Модель бережно переведет и художественно адаптирует личность, внешность, манеру речи, сценарий, приветствие (с действиями в <code>*звездочках*</code> и речью в <code>"кавычках"</code>), примеры диалогов и встроенный лорбук на русский язык, сохранив все ролевые переменные <code>{{user}}</code> и <code>{{char}}</code>.
+          </p>
+        </div>
+
+        <!-- Original text snippet accordion -->
+        <details class="card-import-details-accordion">
+          <summary>🔍 Посмотреть исходные данные карточки (English)</summary>
+          <div id="cardImportOriginalPreview" class="card-import-raw-preview"></div>
+        </details>
+
+        <!-- Progress Indicator -->
+        <div id="cardImportProgress" class="card-import-progress" style="display: none;">
+          <div class="card-import-spinner">⏳</div>
+          <div class="card-import-progress-text" id="cardImportProgressText">ИИ переводит и адаптирует персонажа...</div>
+        </div>
+        <p id="cardImportError" class="card-import-error" style="display: none;"></p>
+
+        <!-- Action Buttons -->
+        <div class="card-import-actions">
+          <button id="cardImportAdaptBtn" type="button" class="btn-import-adapt">
+            <span class="btn-icon">✨</span>
+            <span class="btn-text">Адаптировать на русский (ИИ)</span>
+          </button>
+          <button id="cardImportAsIsBtn" type="button" class="btn-import-asis">
+            <span>📥 Импортировать как есть</span>
+          </button>
+          <button id="cardImportCancelBtn" type="button" class="btn-import-cancel">
+            Отмена
+          </button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- AI Character Enhancer & Audit Dialog (with 18+ mode) -->
+    <dialog id="characterEnhancerDialog" class="character-enhancer-dialog">
+      <form method="dialog" class="admin-topbar">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 18px;">✨</span>
+          <h3 style="margin: 0; font-size: 15px;">Анализ и улучшение персонажа через ИИ</h3>
+        </div>
+        <button type="button" class="close-dialog-btn" id="closeCharacterEnhancerBtn">&times;</button>
+      </form>
+
+      <div class="character-enhancer-body">
+        <!-- Target Character Banner -->
+        <div class="enhancer-hero">
+          <div class="enhancer-avatar-wrap">
+            <div id="enhancerAvatarPreview" class="enhancer-avatar">👤</div>
+          </div>
+          <div class="enhancer-details">
+            <div class="enhancer-title-row">
+              <h4 id="enhancerCharName" class="enhancer-char-name">Имя персонажа</h4>
+              <span id="enhancerNsfwBadge" class="badge-enhancer-nsfw" style="display: none;">🔞 18+ Mature</span>
+            </div>
+            <p id="enhancerCharDesc" class="enhancer-char-desc">Описание персонажа...</p>
+          </div>
+        </div>
+
+        <!-- Options Form Section -->
+        <div class="enhancer-controls-section">
+          <!-- 18+ / NSFW Switch -->
+          <div class="enhancer-row-switch">
+            <div class="enhancer-switch-label">
+              <span class="enhancer-switch-title">🔞 Режим 18+ (Mature / Чувственность & Страсть)</span>
+              <span class="enhancer-switch-hint">Добавляет романтическое и сексуальное напряжение, чувственные описания (взгляд, аромат, тепло кожи, прикосновения), химию в диалогах и взрослые шкалы влечения/интимности.</span>
+            </div>
+            <label class="switch switch-large">
+              <input id="enhancerNsfwToggle" type="checkbox" />
+              <span class="slider round"></span>
+            </label>
+          </div>
+
+          <!-- Enhancement Preset -->
+          <div class="enhancer-field-group">
+            <label for="enhancerPresetSelect">Стиль и акценты улучшения:</label>
+            <select id="enhancerPresetSelect" class="select-wide">
+              <option value="balanced">💎 Баланс и Глубина (живой характер, реализм, сенсорные детали)</option>
+              <option value="romance">🔥 Романтика и Чувственность (18+) (химия, флирт, тактильность, страсть)</option>
+              <option value="lore">⚔️ Атмосфера и Лор (кинематографичность, тайны, окружение)</option>
+              <option value="charisma">🎭 Острый язык и Харизма (сарказм, ирония, яркие фразы)</option>
+              <option value="dark">🖤 Темный нуар и Драма (психологические травмы, тайны, накал)</option>
+            </select>
+          </div>
+
+          <!-- Custom User Instructions -->
+          <div class="enhancer-field-group">
+            <label for="enhancerUserInstructions">Дополнительные пожелания к улучшению (опционально):</label>
+            <input type="text" id="enhancerUserInstructions" class="input-wide" placeholder="Например: Сделай персонажа более дерзким, добавь тайну из прошлого..." />
+          </div>
+
+          <!-- Model Select -->
+          <div class="enhancer-field-group">
+            <label for="enhancerModelSelect">Модель для анализа и генерации:</label>
+            <select id="enhancerModelSelect" class="select-wide"></select>
+          </div>
+
+          <button id="enhancerSubmitBtn" type="button" class="btn-enhancer-submit">
+            <span class="btn-icon">⚡</span>
+            <span class="btn-text">Анализировать и улучшить персонажа</span>
+          </button>
+        </div>
+
+        <!-- Progress Indicator -->
+        <div id="enhancerProgress" class="card-import-progress" style="display: none;">
+          <div class="card-import-spinner">🔮</div>
+          <div class="card-import-progress-text" id="enhancerProgressText">ИИ анализирует карточку персонажа...</div>
+        </div>
+        <p id="enhancerError" class="card-import-error" style="display: none;"></p>
+
+        <!-- Result / Preview Section -->
+        <div id="enhancerResultSection" class="enhancer-result-section" style="display: none;">
+          <!-- Audit Card -->
+          <div class="enhancer-audit-card">
+            <div class="enhancer-audit-header">
+              <span style="font-size: 18px;">🔍</span>
+              <h4>Результаты ИИ-Аудита</h4>
+            </div>
+            <div id="enhancerAuditSummary" class="enhancer-audit-summary"></div>
+            <div class="enhancer-audit-grid">
+              <div class="enhancer-audit-col weaknesses">
+                <h5>⚠️ Что было шаблонным / плоским:</h5>
+                <ul id="enhancerAuditWeaknesses"></ul>
+              </div>
+              <div class="enhancer-audit-col improvements">
+                <h5>✨ Что улучшено и добавлено:</h5>
+                <ul id="enhancerAuditImprovements"></ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Preview Accordion of Enhanced Fields -->
+          <div class="enhancer-preview-box">
+            <div class="enhancer-preview-title">Предпросмотр улучшений карточки:</div>
+            
+            <details class="enhancer-preview-details" open>
+              <summary>💬 Первое сообщение (First Message)</summary>
+              <div id="enhancerPreviewFirstMessage" class="enhancer-preview-content markdown-style"></div>
+            </details>
+
+            <details class="enhancer-preview-details">
+              <summary>👗 Внешность (Appearance)</summary>
+              <div id="enhancerPreviewAppearance" class="enhancer-preview-content"></div>
+            </details>
+
+            <details class="enhancer-preview-details">
+              <summary>🧠 Характер и поведение (Behavior)</summary>
+              <div id="enhancerPreviewBehavior" class="enhancer-preview-content"></div>
+            </details>
+
+            <details class="enhancer-preview-details">
+              <summary>🗣️ Стиль речи (Speech)</summary>
+              <div id="enhancerPreviewSpeech" class="enhancer-preview-content"></div>
+            </details>
+
+            <details class="enhancer-preview-details">
+              <summary>🎬 Сценарий (Scenario)</summary>
+              <div id="enhancerPreviewScenario" class="enhancer-preview-content"></div>
+            </details>
+
+            <details class="enhancer-preview-details">
+              <summary>📊 Шкалы состояний (Core States)</summary>
+              <div id="enhancerPreviewCoreStates" class="enhancer-preview-states"></div>
+            </details>
+          </div>
+
+          <!-- Apply & Discard Actions -->
+          <div class="enhancer-apply-actions">
+            <button id="enhancerApplyBtn" type="button" class="btn-enhancer-apply">
+              <span class="btn-icon">💾</span>
+              <span>Применить улучшения в персонажа</span>
+            </button>
+            <button id="enhancerCancelBtn" type="button" class="btn-import-cancel">
+              Отмена
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Time Skip Modal Dialog -->
+    <dialog id="timeSkipDialog" class="janitor-persona-modal" style="max-width: 520px; width: 92%;">
+      <header class="dialog-header janitor-persona-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: rgba(255, 255, 255, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 20px;">⏳</span>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Перемотка времени (Time Skip)</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Перенос сцены вперед без ручного написания промпта</span>
+          </div>
+        </div>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('timeSkipDialog').close()">&times;</button>
+      </header>
+
+      <div class="janitor-persona-body" style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <!-- Preset quick chips -->
+        <div>
+          <label style="display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Быстрый выбор длительности:</label>
+          <div class="time-skip-chips-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button type="button" class="time-skip-preset-chip" data-time="На следующее утро (+1 ночь)" data-detail="Прошла ночь. Наступило утро нового дня.">
+              🌅 На следующее утро
+            </button>
+            <button type="button" class="time-skip-preset-chip" data-time="Наступил вечер / ночь (+несколько часов)" data-detail="Солнце село, опустились сумерки.">
+              🌙 Наступил вечер / ночь
+            </button>
+            <button type="button" class="time-skip-preset-chip" data-time="Спустя 2-3 часа" data-detail="Прошло немного времени, обстановка сдвинулась вперед.">
+              ⏳ Спустя 2-3 часа
+            </button>
+            <button type="button" class="time-skip-preset-chip" data-time="Спустя несколько дней (+3 дня)" data-detail="Прошло несколько дней спокойной обстановки.">
+              📅 Спустя несколько дней
+            </button>
+            <button type="button" class="time-skip-preset-chip" data-time="Спустя неделю" data-detail="Прошла целая неделя с момента прошлых событий.">
+              🗓️ Спустя неделю
+            </button>
+            <button type="button" class="time-skip-preset-chip" data-time="Спустя месяц" data-detail="Прошел месяц, многое успело измениться.">
+              🍂 Спустя месяц
+            </button>
+          </div>
+        </div>
+
+        <!-- Duration input -->
+        <div>
+          <label style="display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Сколько времени прошло:</label>
+          <input id="timeSkipDurationInput" type="text" placeholder="Например: На следующее утро, 4 часа, 2 дня..." style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text-primary); font-size: 13px;" />
+        </div>
+
+        <!-- Details / Context note -->
+        <div>
+          <label style="display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Что произошло / Обстановка новой сцены (опционально):</label>
+          <textarea id="timeSkipDetailsInput" placeholder="Например: Доехали до постоялого двора, сняли комнаты... или: Буря за окном утихла, в дверь раздался стук..." style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text-primary); font-size: 12.5px; height: 75px; resize: vertical;"></textarea>
+        </div>
+
+        <!-- Immediate generation toggle -->
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-primary); cursor: pointer; user-select: none;">
+          <input id="timeSkipAutoGenerateToggle" type="checkbox" checked style="accent-color: #ffffff; width: 16px; height: 16px;" />
+          <span>✨ Сразу сгенерировать ответ модели (описать начало сцены)</span>
+        </label>
+
+        <!-- Action footer -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap;">
+          <button id="timeSkipInsertInputBtn" type="button" class="chat-header-btn" style="padding: 7px 12px; font-size: 12px;" title="Вставить описание перемотки в поле ввода для ручного дополнения">
+            📝 Вставить в поле ввода
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button id="timeSkipCancelBtn" type="button" class="btn-import-cancel" style="padding: 7px 14px; font-size: 12.5px;">Отмена</button>
+            <button id="timeSkipSubmitBtn" type="button" class="btn-footer-create" style="padding: 7px 18px; font-size: 12.5px; background: #ffffff; border-color: #ffffff; color: #000000; font-weight: 700;">
+              ⏳ Перемотать время
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="chatScenarioDialog" class="janitor-persona-modal" style="max-width: 520px; width: 92%;">
+      <header class="dialog-header janitor-persona-header" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 18px; background: rgba(255, 255, 255, 0.04); border-bottom: 1px solid rgba(255, 255, 255, 0.08);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 20px;">📜</span>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 700; color: #ffffff;">Сценарий чата</h3>
+            <span style="font-size: 11px; color: var(--text-muted);">Действует только в этом чате и заменяет сценарий персонажа</span>
+          </div>
+        </div>
+        <button type="button" class="close-dialog-btn" onclick="document.getElementById('chatScenarioDialog').close()">&times;</button>
+      </header>
+
+      <div class="janitor-persona-body" style="padding: 18px; display: flex; flex-direction: column; gap: 14px;">
+        <div>
+          <label style="display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px;">Быстрый выбор:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button type="button" class="time-skip-preset-chip chat-scenario-preset" data-scenario="Встреча в таверне у камина, за соседними столами шумно. Оба случайно оказались за одним столом.">🍺 Таверна</button>
+            <button type="button" class="time-skip-preset-chip chat-scenario-preset" data-scenario="Ночная дорога через лес. Лошади устали, луна едва пробивается сквозь ветки, где-то вдали воет волк.">🌲 Ночной лес</button>
+            <button type="button" class="time-skip-preset-chip chat-scenario-preset" data-scenario="Запертая библиотека старого замка. Единственный свет идёт от свечи, а дверь заперта снаружи.">📚 Запертая библиотека</button>
+            <button type="button" class="time-skip-preset-chip chat-scenario-preset" data-scenario="Погоня по крышам ночного города. Стража уже близко, а впереди разрыв между домами.">🏙️ Погоня по крышам</button>
+            <button type="button" class="time-skip-preset-chip chat-scenario-preset" data-scenario="Спокойный вечер в доме. Тихо потрескивает камин, на столе остывает ужин.">🏠 Тихий вечер</button>
+            <button type="button" class="time-skip-preset-chip chat-scenario-preset" data-scenario="Первая встреча на большом балу. Музыка играет, зал полон гостей, и никто не знает, кто есть кто.">💃 Бал</button>
+          </div>
+        </div>
+
+        <div>
+          <label for="chatScenarioInput" style="display: block; font-size: 11.5px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px;">Сценарий:</label>
+          <textarea id="chatScenarioInput" placeholder="Опишите место, время, ситуацию и цели сцены. Пусто — будет использован сценарий персонажа." style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text-primary); font-size: 12.5px; height: 120px; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button id="chatScenarioResetBtn" type="button" class="chat-header-btn" style="padding: 7px 12px; font-size: 12px;" title="Вернуть сценарий персонажа">
+            ↺ Сбросить к сценарию персонажа
+          </button>
+          <div style="display: flex; gap: 8px;">
+            <button id="chatScenarioCancelBtn" type="button" class="btn-import-cancel" style="padding: 7px 14px; font-size: 12.5px;">Отмена</button>
+            <button id="chatScenarioSaveBtn" type="button" class="btn-footer-create" style="padding: 7px 18px; font-size: 12.5px; background: #ffffff; border-color: #ffffff; color: #000000; font-weight: 700;">
+              💾 Сохранить
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Fullscreen Image Viewer Modal -->
+    <dialog id="imageViewerModal" class="image-viewer-modal">
+      <div class="image-viewer-container">
+        <button id="closeImageViewerBtn" type="button" class="image-viewer-close" title="Закрыть">&times;</button>
+        <img id="imageViewerImg" src="" alt="Full view" />
+      </div>
+    </dialog>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script type="module" src="./app.js?v=3.8"></script>
+
+    <!-- Backdrop Auto-closing Script for all dialogs -->
+    <script>
+      // Safe showModal override
+      const originalShowModal = HTMLDialogElement.prototype.showModal;
+      HTMLDialogElement.prototype.showModal = function() {
+        if (this.open) return;
+        originalShowModal.call(this);
+      };
+
+      document.querySelectorAll('dialog').forEach(dialog => {
+        let isMouseDownOnBackdrop = false;
+        dialog.addEventListener('mousedown', (e) => {
+          if (e.target !== dialog) {
+            isMouseDownOnBackdrop = false;
+            return;
+          }
+          const rect = dialog.getBoundingClientRect();
+          isMouseDownOnBackdrop = !(
+            rect.top <= e.clientY &&
+            e.clientY <= rect.top + rect.height &&
+            rect.left <= e.clientX &&
+            e.clientX <= rect.left + rect.width
+          );
+        });
+        dialog.addEventListener('mouseup', (e) => {
+          if (!isMouseDownOnBackdrop) return;
+          if (e.target !== dialog) {
+            isMouseDownOnBackdrop = false;
+            return;
+          }
+          const rect = dialog.getBoundingClientRect();
+          const isMouseUpOnBackdrop = !(
+            rect.top <= e.clientY &&
+            e.clientY <= rect.top + rect.height &&
+            rect.left <= e.clientX &&
+            e.clientX <= rect.left + rect.width
+          );
+          if (isMouseUpOnBackdrop) {
+            dialog.close();
+          }
+          isMouseDownOnBackdrop = false;
+        });
+      });
+    </script>
+  </body>
+</html>

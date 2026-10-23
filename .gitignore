@@ -1,0 +1,63 @@
+# Секреты и переменные окружения
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Зависимости Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Сборки и веб-артефакты
+dist/
+www/
+
+# Android (сборки и локальные пути SDK)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/captures/
+*.apk
+*.aab
+
+# Tauri / Rust (компилируемые файлы)
+src-tauri/target/
+src-tauri/gen/schemas/
+
+# Python (кэш и виртуальные окружения)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Логи, отчеты и временные файлы тестов
+*.log
+*.tmp
+test_output.txt
+test_screenshots/
+scratch/
+tests/e2e/results.json
+*chrome-profile*
+tests/helpers/chrome-profile-*/
+
+# Резервные копии
+backup/
+backup_*/
+*.bak
+*.backup
+
+# Настройки редакторов и системы
+.vscode/
+.idea/
+.cursor/
+.agents/
+.DS_Store
+Thumbs.db

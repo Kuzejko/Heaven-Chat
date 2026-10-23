@@ -1,0 +1,51 @@
+{
+  "setting": {
+    "location": "Dark Forest Tavern",
+    "time": "Midnight",
+    "atmosphere": "Rainy and tense",
+    "world_rules": [
+      "Magic requires catalyst"
+    ]
+  },
+  "characters": {
+    "Elena": {
+      "physical_state": "Slightly injured left arm",
+      "emotional_state": "Suspicious but curious",
+      "relationships": {
+        "User": "Wary partner"
+      },
+      "goals": [
+        "Find the ancient map"
+      ],
+      "important_traits": [
+        "Agile",
+        "Perceptive"
+      ],
+      "notes": "Keeps hand on dagger"
+    }
+  },
+  "key_events": [
+    {
+      "summary": "Shared a table at the tavern and escaped guards",
+      "consequences": "Bound together by joint escape",
+      "timestamp": "Turn 5"
+    }
+  ],
+  "unresolved_threads": [
+    "Who betrayed them to the guards?"
+  ],
+  "intimate_notes": {
+    "dynamics": "Tense eye contact, growing mutual trust",
+    "boundaries": [
+      "No touch without permission"
+    ],
+    "preferences": [
+      "Whispered confessions"
+    ],
+    "recent_events": [
+      "User wrapped her injured arm in bandage"
+    ]
+  },
+  "current_status": "Hiding in the back alley after escaping guards",
+  "last_updated_message_id": 7
+}

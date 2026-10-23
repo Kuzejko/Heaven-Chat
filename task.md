@@ -1,0 +1,3 @@
+- [x] Modify index.html to add GM Mode toggle UI and dialog for selecting participants.
+- [x] Modify js/ui.js to add DOM elements, the parseGmMessage helper, getAvatarStyleForName helper, and render blocks logic for GM messages.
+- [x] Modify services/promptBuilder.js to implement buildGroupScenePrompt and branch buildApiMessages for GM Mode.
