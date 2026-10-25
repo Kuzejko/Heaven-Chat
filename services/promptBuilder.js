@@ -286,10 +286,10 @@ Avoid all modern anachronisms (headphones, phones, electricity, plastic).
   }
 
   if (globalPrompt.trim()) {
-    parts.push(`<global_rules>\n${globalPrompt.trim()}\n</global_rules>`);
+    parts.push(`<global_system_prompt>\n${globalPrompt.trim()}\n</global_system_prompt>`);
   }
   if (systemPrompt.trim()) {
-    parts.push(`<character_specific_instructions>\n${systemPrompt.trim()}\n</character_specific_instructions>`);
+    parts.push(`<character_system_prompt>\n${systemPrompt.trim()}\n</character_system_prompt>`);
   }
 
   if (character.traits && character.traits.length > 0) {
@@ -1202,7 +1202,7 @@ Exclusive Control: The User (${userName}) controls their own character exclusive
 
   const globalPrompt = replaceMacros(state.globalSystemPrompt || "", { name: "User" });
   if (globalPrompt.trim()) {
-    parts.push(`<global_rules>\n${globalPrompt.trim()}\n</global_rules>`);
+    parts.push(`<global_system_prompt>\n${globalPrompt.trim()}\n</global_system_prompt>`);
   }
 
   return parts.join("\n\n");

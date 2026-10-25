@@ -3007,20 +3007,33 @@ export function renderDebugLogs() {
       
       const character = getActiveCharacter();
       if (!character) {
-        dom.debugLogDetail.textContent = "No active character selected.";
+        dom.debugLogDetail.textContent = "Персонаж не выбран. Выберите персонажа в левой панели для просмотра его системного промпта.";
         return;
       }
       
       const systemPromptText = buildSystemContextCallback ? buildSystemContextCallback(character) : "";
+      const hasGlobalPrompt = Boolean(state.globalSystemPrompt && state.globalSystemPrompt.trim());
+      const hasCharPrompt = Boolean(character.systemPrompt && character.systemPrompt.trim());
+      const isStabsActive = state.apiSettings?.stabsEdhEnabled !== false;
+
       const details = [
-        `=== LIVE SYSTEM PROMPT CONTEXT PREVIEW ===`,
-        `Character: ${character.name} (${character.id})`,
-        `Timestamp: ${new Date().toLocaleString()}`,
+        `============================================================`,
+        `🔍 ТЕКУЩИЙ СИСТЕМНЫЙ ПРОМПТ И КОНТЕКСТ ПЕРСОНАЖА:`,
+        `============================================================`,
+        `Активный персонаж:        ${character.name} (id: ${character.id})`,
+        `Время предпросмотра:      ${new Date().toLocaleString()}`,
+        `Глобальный промпт (Settings): ${hasGlobalPrompt ? `✅ Задан (${state.globalSystemPrompt.trim().length} симв.)` : "⚠️ Не задан (пусто в настройках)"}`,
+        `Промпт персонажа (Card):      ${hasCharPrompt ? `✅ Задан (${character.systemPrompt.trim().length} симв.)` : "⚠️ Не задан в карточке"}`,
+        `Директивы STAB'S EDH:         ${isStabsActive ? "✅ Включены (Anti-Slop, Anti-Echo, Суверенитет игрока)" : "❌ Отключены"}`,
+        `Уровень инициативы:           ${state.apiSettings?.initiativeLevel || "balanced"}`,
         ``,
+        `============================================================`,
+        `📜 ПОЛНЫЙ ТЕКСТ СИСТЕМНОГО СООБЩЕНИЯ (ОТПРАВЛЯЕТСЯ В РОЛИ "SYSTEM"):`,
+        `============================================================`,
         systemPromptText,
         ``,
-        `==========================================`,
-        `Note: This is the exact system instruction sent in the "system" role payload to OpenRouter.`
+        `============================================================`,
+        `💡 Примечание: Этот текст отправляется первым элементом массива сообщений с ролью { role: "system" } в каждый запрос к нейросети.`
       ].join("\n");
       
       dom.debugLogDetail.textContent = details;
@@ -3148,17 +3161,44 @@ export function renderDebugLogs() {
         document.querySelectorAll("#debugLogList li").forEach(n => n.classList.remove("selected"));
         li.classList.add("selected");
         
+        const formattedMessages = Array.isArray(log.messages) ? log.messages.map((m, idx) => {
+          const roleUpper = (m.role || "unknown").toUpperCase();
+          let headerNote = "";
+          if (idx === 0 && m.role === "system") {
+            headerNote = " 🧠 [НАЧАЛЬНЫЙ СИСТЕМНЫЙ ПРОМПТ И КОНТЕКСТ МИРА]";
+          } else if (idx === log.messages.length - 1 && m.role === "system") {
+            headerNote = " 🛡️ [ФИНАЛЬНЫЕ ДИРЕКТИВЫ STAB'S EDH / СИСТЕМНЫЙ РЕМАЙНДЕР]";
+          } else if (m.role === "user") {
+            headerNote = " 👤 [ХОД ПОЛЬЗОВАТЕЛЯ]";
+          } else if (m.role === "assistant") {
+            headerNote = " 🤖 [ОТВЕТ ПЕРСОНАЖА]";
+          }
+          const contentStr = typeof m.content === "string" 
+            ? m.content 
+            : JSON.stringify(m.content, null, 2);
+          return `------------------------------------------------------------\n[СООБЩЕНИЕ ${idx + 1}] РОЛЬ: ${roleUpper}${headerNote}\n------------------------------------------------------------\n${contentStr}`;
+        }).join("\n\n") : JSON.stringify(log.messages, null, 2);
+
         const details = [
-          `Timestamp: ${new Date(log.timestamp).toLocaleString()}`,
-          `Model:     ${log.model}`,
-          `Type:      ${log.type}`,
-          `Latency:   ${log.latencyMs}ms`,
+          `Время отправки: ${new Date(log.timestamp).toLocaleString()}`,
+          `Модель ИИ:      ${log.model}`,
+          `Тип запроса:    ${log.type}`,
+          `Задержка:       ${log.latencyMs}ms`,
           ``,
-          `=== MESSAGES SENT ===`,
-          JSON.stringify(log.messages, null, 2),
+          `============================================================`,
+          `📨 СООБЩЕНИЯ, ОТПРАВЛЕННЫЕ В МОДЕЛЬ (${Array.isArray(log.messages) ? log.messages.length : 0} шт.):`,
+          `============================================================`,
+          formattedMessages,
           ``,
-          `=== RESPONSE RECEIVED ===`,
-          log.responseText
+          `============================================================`,
+          `📥 ПОЛУЧЕННЫЙ ОТВЕТ МОДЕЛИ:`,
+          `============================================================`,
+          log.responseText || "(Пустой ответ)",
+          ``,
+          `============================================================`,
+          `📦 СЫРОЙ JSON ЗАПРОСА (RAW PAYLOAD):`,
+          `============================================================`,
+          JSON.stringify(log.messages, null, 2)
         ].join("\n");
         
         dom.debugLogDetail.textContent = details;
