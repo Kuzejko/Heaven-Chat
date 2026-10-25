@@ -114,4 +114,12 @@ assert.ok(gmPrompt.includes("<hard_priority_directives>"), "GM prompt must inclu
 assert.ok(gmPrompt.includes("Внезапно обрушить потолок в зале"), "GM prompt must include hard directive text");
 console.log("✔ Test 5 passed: GM mode scene prompt properly includes hard priority directives.");
 
-console.log("\n🚀 All Directives Hard Priority Tests Passed Successfully!");
+// 6. Test: GM Mode buildApiMessages includes GM scene scenario in system_reminder
+const gmMessages = buildApiMessages(null, "Осматриваемся вокруг", null, null, {}, gmChatId);
+const gmReminder = gmMessages.find(m => m.role === "system" && m.content.includes("system_reminder"));
+assert.ok(gmReminder, "GM system reminder must exist");
+assert.ok(gmReminder.content.includes("СЦЕНАРИЙ И ОБСТАНОВКА СЦЕНЫ"), "GM system reminder must include scene scenario section");
+assert.ok(gmReminder.content.includes("Исследование руин"), "GM system reminder must contain the scene scenario text");
+console.log("✔ Test 6 passed: GM mode buildApiMessages system_reminder includes scene scenario reminder.");
+
+console.log("\n🚀 All Directives and GM Scenario Tests Passed Successfully!");

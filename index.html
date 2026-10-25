@@ -256,6 +256,9 @@
               </button>
             </div>
             <div class="composer-actions">
+              <button id="characterTurnBtn" type="button" class="btn-character-turn" title="Ход персонажа (передать ход или продолжить сцену без вашего текста)" style="display: inline-flex; align-items: center; gap: 5px; padding: 0 12px; height: 38px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: var(--text-primary); transition: all 0.2s ease;">
+                <span>⚡ Ход героя</span>
+              </button>
               <button id="sendBtn" type="button" class="btn-send-main"><svg class="feather" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> <span>Send</span></button>
             </div>
           </div>
@@ -803,6 +806,15 @@
                   <option value="every_turn">⚡ Каждый ход (~400 токенов)</option>
                   <option value="every_5_messages">⌛ Каждые 5 сообщений</option>
                   <option value="manual">🛑 Только вручную</option>
+                </select>
+              </label>
+
+              <label class="form-field-block" style="margin-bottom: 8px;">
+                <span class="font-medium" style="font-size: 12.5px;">Инициатива персонажа:</span>
+                <select id="initiativeLevelSelect" class="select-wide">
+                  <option value="balanced" selected>⚖️ Сбалансированная (Партнер)</option>
+                  <option value="high">🔥 Высокая (Драйвер сюжета)</option>
+                  <option value="follower">🧘 Спокойная (Ведомый)</option>
                 </select>
               </label>
             </div>
@@ -2341,14 +2353,27 @@
           <textarea id="chatScenarioInput" placeholder="Опишите место, время, ситуацию и цели сцены. Пусто — будет использован сценарий персонажа." style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text-primary); font-size: 12.5px; height: 120px; resize: vertical;"></textarea>
         </div>
 
+        <div id="chatScenarioOptionsWrap" style="display: flex; flex-direction: column; gap: 6px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; padding: 10px 12px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-primary); cursor: pointer; user-select: none;">
+            <input type="checkbox" id="chatScenarioRegenToggle" style="accent-color: var(--accent); width: 15px; height: 15px; cursor: pointer;" checked />
+            <span style="font-weight: 600;">✨ Сгенерировать вступительное сообщение бота под этот сценарий</span>
+          </label>
+          <span id="chatScenarioRegenHint" style="font-size: 11px; color: var(--text-muted); padding-left: 23px; line-height: 1.35;">
+            Персонаж откроет сцену с учетом нового сценария, полностью сохраняя свой характер, манеру речи и повадки.
+          </span>
+        </div>
+
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <button id="chatScenarioResetBtn" type="button" class="chat-header-btn" style="padding: 7px 12px; font-size: 12px;" title="Вернуть сценарий персонажа">
-            ↺ Сбросить к сценарию персонажа
+          <button id="chatScenarioResetBtn" type="button" class="chat-header-btn" style="padding: 7px 12px; font-size: 12px;" title="Вернуть оригинальный сценарий персонажа">
+            ↺ Сбросить к оригиналу
           </button>
           <div style="display: flex; gap: 8px;">
             <button id="chatScenarioCancelBtn" type="button" class="btn-import-cancel" style="padding: 7px 14px; font-size: 12.5px;">Отмена</button>
+            <button id="chatScenarioRestartBtn" type="button" class="chat-header-btn" style="padding: 7px 14px; font-size: 12.5px; display: none;" title="Очистить чат и начать сцену заново по новому сценарию">
+              🔄 Начать заново
+            </button>
             <button id="chatScenarioSaveBtn" type="button" class="btn-footer-create" style="padding: 7px 18px; font-size: 12.5px; background: #ffffff; border-color: #ffffff; color: #000000; font-weight: 700;">
-              💾 Сохранить
+              💾 Применить
             </button>
           </div>
         </div>

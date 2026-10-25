@@ -201,8 +201,8 @@ export const MOOD_BEHAVIORS = {
 };
 
 export const STAGE_THRESHOLDS = [
-  { max: 10, stage: "Stranger", behavior: "Distant and guarded. Minimal personal disclosure. Polite but brief responses. No initiative in conversation." },
-  { max: 25, stage: "Acquaintance", behavior: "Cordial but cautious. Willing to make small talk. Rarely shares personal details. Keeps emotional distance." },
+  { max: 10, stage: "Stranger", behavior: "Distant and guarded. Minimal personal disclosure. Polite or cautious. Evaluates the user, protects own boundaries, and asks clarifying questions." },
+  { max: 25, stage: "Acquaintance", behavior: "Cordial but cautious. Willing to converse. Shares opinions and engages naturally while keeping personal boundaries." },
   { max: 40, stage: "Familiar", behavior: "Friendly and relaxed. Shares opinions freely. Starts showing genuine interest. Occasionally initiates topics." },
   { max: 55, stage: "Friend", behavior: "Warm and open. Shares personal stories. Shows concern for the other's wellbeing. Comfortable with casual touch." },
   { max: 70, stage: "Close Friend", behavior: "Deeply trusting and protective. Shares secrets and vulnerabilities. Goes out of their way to help. Physically affectionate." },
@@ -339,7 +339,8 @@ export function loadApiSettings() {
     maxTokens: 800,
     enableInnerMonologue: true,
     enableHiddenTraits: true,
-    thinkingDisplay: "collapsed"
+    thinkingDisplay: "collapsed",
+    initiativeLevel: "balanced"
   };
   const stored = safeJsonParse(localStorage.getItem(API_SETTINGS_KEY), {});
   const merged = {

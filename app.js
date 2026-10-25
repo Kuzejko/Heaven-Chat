@@ -404,7 +404,26 @@ async function triggerAutoFirstMessage(characterId) {
   saveChats(state.chats);
   renderMessages();
   
-  const promptOverride = "[System Instruction: This is the start of the chat. Generate your very first greeting to the user based on your personality and scenario. Do not include any out-of-character text.]";
+  const customScenario = (state.chatMetadata?.[activeChatId]?.customScenario || "").trim();
+  const isRuMsg = (state.apiSettings?.chatLanguage || "ru") === "ru";
+  let promptOverride = "";
+  if (customScenario) {
+    if (isRuMsg) {
+      promptOverride = `[Системная инструкция: Это самое начало ролевой сцены. Сгенерируй вступительное сообщение/действие строго в образе персонажа ${character.name}.
+Сцена разворачивается СТРОГО по кастомному сценарию: "${customScenario}".
+Полностью проигнорируй дефолтную обстановку или завязку из оригинальной карточки, но на 100% сохрани свой аутентичный характер, темперамент, голос, манеру речи и повадки.
+Открой сцену кинематографично и естественно. Никаких мета-комментариев и пояснений от себя.]`;
+    } else {
+      promptOverride = `[System Instruction: This is the very beginning of the roleplay scene. Generate your opening greeting/action strictly in character as ${character.name}.
+The scene takes place STRICTLY according to the custom scenario: "${customScenario}".
+Completely disregard any default meeting premises or original card settings, but preserve 100% of your authentic personality, voice, speech style, and mannerisms.
+Open the scene vividly. Do not include out-of-character meta commentary.]`;
+    }
+  } else {
+    promptOverride = isRuMsg
+      ? "[Системная инструкция: Это самое начало диалога. Сгенерируй вступительное сообщение от лица своего персонажа на основе своего характера и сценария. Без мета-текста.]"
+      : "[System Instruction: This is the start of the chat. Generate your very first greeting to the user based on your personality and scenario. Do not include any out-of-character text.]";
+  }
   
   if (state.abortController) {
     state.abortController.abort();
@@ -2924,10 +2943,15 @@ async function handleSendMessage(event) {
   if (dom.emojiPickerPanel) dom.emojiPickerPanel.style.display = "none";
   if (state.isStreaming) return;
 
-  const userInput = dom.messageInput.value.trim();
+  const isCharacterTurnTrigger = Boolean(event?.isCharacterTurn);
+  const rawInput = dom.messageInput ? dom.messageInput.value.trim() : "";
   const attachedImages = [...(state.pendingAttachedImages || [])];
   const hasImages = attachedImages.length > 0;
-  if (!userInput && !hasImages) return;
+  if (!rawInput && !hasImages && !isCharacterTurnTrigger) return;
+
+  const isRuMsg = (state.apiSettings?.chatLanguage || "ru") === "ru";
+  const defaultTurnText = isRuMsg ? "*выдерживает паузу, передавая инициативу персонажу*" : "*stays silent, passing initiative to the character*";
+  const userInput = rawInput || (isCharacterTurnTrigger ? defaultTurnText : "");
 
   const isGm = state.sidebarTab === "gm";
   const activeId = isGm ? state.activeGmSceneId : state.activeCharacterId;
@@ -2947,6 +2971,7 @@ async function handleSendMessage(event) {
   saveApiSettings(state.apiSettings);
   state.isStreaming = true;
   dom.sendBtn.disabled = true;
+  if (dom.characterTurnBtn) dom.characterTurnBtn.disabled = true;
   setStatus("Assistant is typing...");
 
   const startsWithQuote = userInput.startsWith("> ");
@@ -3211,6 +3236,7 @@ async function handleSendMessage(event) {
     state.retryStatus = null;
     state.isStreaming = false;
     dom.sendBtn.disabled = false;
+    if (dom.characterTurnBtn) dom.characterTurnBtn.disabled = false;
     state.abortController = null;
   }
 }
@@ -3945,7 +3971,8 @@ function handleNewChatUserFirst() {
     switchActiveCharacter(activeId);
   }
 
-  setStatus("Новый чат создан в режиме «Свой сюжет».");
+  openChatScenarioModal();
+  setStatus("Новый чат создан в режиме «Свой сюжет». Задайте сценарий сцены.");
 }
 
 window.triggerAutoFirstMessageGlobal = function(characterId) {
@@ -4032,20 +4059,33 @@ function handleConvertChatToGmScene() {
   // 1. Create a new GM Scene
   const newSceneId = `scene_${Date.now()}`;
   const sceneName = character ? `GM: ${character.name}` : (currentChatMeta?.name ? `GM: ${currentChatMeta.name}` : "Перенесенная сцена");
-  const sceneScenario = character?.scenario || character?.description || "Перенесенный сюжет из обычного чата.";
+  const customScenario = (state.chatMetadata?.[activeChatId]?.customScenario || currentChatMeta?.customScenario || "").trim();
+  const sceneScenario = customScenario || character?.scenario || character?.description || "Перенесенный сюжет из обычного чата.";
 
-  // Create NPC array from active character (or empty if none)
-  const npcs = character ? [{
-    id: character.id,
+  // Create participants array from active character (or empty if none)
+  const participants = character ? [{
+    id: 'npc_imported_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+    characterId: character.id,
     name: character.name,
-    systemPrompt: character.systemPrompt || character.personality || ""
+    gender: character.gender || "he/him",
+    description: character.description || "",
+    personality: character.personality || "",
+    speech: character.speech || "",
+    behavior: character.behavior || "",
+    appearance: character.appearance || "",
+    backstory: character.backstory || "",
+    systemPrompt: character.systemPrompt || ""
   }] : [];
+
+  const defaultPrompt = "Ты — Сценарист и Ведущий (GM). Твоя задача — отыгрывать ВСЕХ персонажей из блока <Active_Characters> и нейтрального Рассказчика.\nПиши живым художественным языком. Описывай действия, окружение и диалоги.\nКРИТИЧЕСКИ ВАЖНО: Каждый персонаж обязан строго соблюдать свою личность и манеру речи.\nКРИТИЧЕСКИ ВАЖНО: Весь текст, диалоги, мысли, описания и действия пиши СТРОГО на русском языке.\nКАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО писать от имени Пользователя или генерировать его реплики, мысли и действия.";
 
   const newScene = {
     id: newSceneId,
     name: sceneName,
     scenario: sceneScenario,
-    npcs: npcs,
+    gmSystemPrompt: defaultPrompt,
+    participants: participants,
+    npcs: participants,
     createdAt: Date.now()
   };
 
@@ -4917,6 +4957,12 @@ function attachEvents() {
       handleSendMessage(e);
     });
   }
+  if (dom.characterTurnBtn) {
+    dom.characterTurnBtn.addEventListener("click", (e) => {
+      if (e && typeof e.preventDefault === "function") e.preventDefault();
+      handleSendMessage({ isCharacterTurn: true });
+    });
+  }
   if (dom.messageInput) {
     dom.messageInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -5184,6 +5230,7 @@ function attachEvents() {
   if (dom.worldGenreSelect) dom.worldGenreSelect.addEventListener("change", syncApiSettingsFromInputs);
   if (dom.summaryModeSelect) dom.summaryModeSelect.addEventListener("change", syncApiSettingsFromInputs);
   if (dom.maxHistoryMessagesSelect) dom.maxHistoryMessagesSelect.addEventListener("change", syncApiSettingsFromInputs);
+  if (dom.initiativeLevelSelect) dom.initiativeLevelSelect.addEventListener("change", syncApiSettingsFromInputs);
   if (dom.responseLengthSelect) {
     dom.responseLengthSelect.addEventListener("change", () => {
       const length = dom.responseLengthSelect.value;
@@ -6388,6 +6435,7 @@ function bootstrap() {
   if (dom.chatLanguageSelect) dom.chatLanguageSelect.value = state.apiSettings.chatLanguage || "ru";
   if (dom.worldGenreSelect) dom.worldGenreSelect.value = state.apiSettings.worldGenre || "fantasy";
   if (dom.stabsEdhToggle) dom.stabsEdhToggle.checked = state.apiSettings.stabsEdhEnabled !== false;
+  if (dom.initiativeLevelSelect) dom.initiativeLevelSelect.value = state.apiSettings.initiativeLevel || "balanced";
 
 
   if (dom.apiKeyInput) dom.apiKeyInput.value = loadApiKey();
@@ -7449,7 +7497,14 @@ if (dom.timeSkipBtn) {
 }
 function openChatScenarioModal() {
   if (state.sidebarTab === "gm") {
-    showStateNotification("В GM-сцене сценарий задаётся в самой сцене.");
+    if (state.activeGmSceneId) {
+      openGmSceneDialog(state.activeGmSceneId);
+      if (dom.gmSceneScenarioInput) {
+        setTimeout(() => dom.gmSceneScenarioInput.focus(), 150);
+      }
+    } else {
+      showStateNotification("Сначала выберите или создайте GM-сцену.");
+    }
     return;
   }
   const activeId = state.activeCharacterId;
@@ -7464,14 +7519,31 @@ function openChatScenarioModal() {
 
   const character = getActiveCharacter();
   const defaultScenario = (character?.scenario || "").trim();
-  dom.chatScenarioInput.value = state.chatMetadata?.[activeChatId]?.customScenario || "";
-  dom.chatScenarioInput.placeholder = defaultScenario
-    ? `По умолчанию: ${defaultScenario.slice(0, 140)}${defaultScenario.length > 140 ? "…" : ""}`
-    : "Опишите место, время, ситуацию и цели сцены.";
+  const currentCustom = state.chatMetadata?.[activeChatId]?.customScenario || chatEntry?.customScenario || "";
+  if (dom.chatScenarioInput) {
+    dom.chatScenarioInput.value = currentCustom;
+    dom.chatScenarioInput.placeholder = defaultScenario
+      ? `По умолчанию: ${defaultScenario.slice(0, 140)}${defaultScenario.length > 140 ? "…" : ""}`
+      : "Опишите место, время, ситуацию и цели сцены.";
+  }
+
+  const history = state.chats[activeChatId] || [];
+  const hasUserMessages = history.some(m => m.role === "user");
+
+  if (dom.chatScenarioRestartBtn) {
+    dom.chatScenarioRestartBtn.style.display = hasUserMessages ? "inline-flex" : "none";
+  }
+  if (dom.chatScenarioRegenToggle) {
+    dom.chatScenarioRegenToggle.checked = !hasUserMessages;
+  }
+  if (dom.chatScenarioOptionsWrap) {
+    dom.chatScenarioOptionsWrap.style.display = "flex";
+  }
+
   dom.chatScenarioDialog.showModal();
 }
 
-function saveChatScenario(text) {
+async function saveChatScenario(text, options = {}) {
   const activeId = state.activeCharacterId;
   if (!activeId) return;
   const activeChatId = getActiveChatId(activeId);
@@ -7484,9 +7556,59 @@ function saveChatScenario(text) {
     delete next.customScenario;
   }
   state.chatMetadata[activeChatId] = next;
+
+  const chats = state.chatMetadata[activeId] || [];
+  const chatEntry = chats.find(c => c.id === activeChatId);
+  if (chatEntry) {
+    if (trimmed) {
+      chatEntry.customScenario = trimmed;
+    } else {
+      delete chatEntry.customScenario;
+    }
+  }
   saveChatMetadata(state.chatMetadata);
   dom.chatScenarioDialog.close();
+
+  const isReset = !trimmed;
+  const shouldRestart = Boolean(options.restart);
+  const shouldRegen = Boolean(options.regen);
+  const history = state.chats[activeChatId] || [];
+  const hasUserMessages = history.some(m => m.role === "user");
+
+  if (isReset) {
+    if (!hasUserMessages) {
+      const character = getActiveCharacter();
+      if (character && character.firstMessage) {
+        state.chats[activeChatId] = [{
+          role: "assistant",
+          content: replaceMacros(character.firstMessage, character),
+          timestamp: Date.now()
+        }];
+        saveChats(state.chats);
+        renderMessages();
+      }
+    }
+    showStateNotification("Сценарий чата сброшен к сценарию персонажа");
+    return;
+  }
+
   showStateNotification(trimmed ? "📜 Сценарий чата сохранён" : "Сценарий чата сброшен к сценарию персонажа");
+
+  if (shouldRestart) {
+    state.chats[activeChatId] = [];
+    state.chatStates[activeChatId] = {};
+    saveChats(state.chats);
+    saveChatStates(state.chatStates);
+    renderMessages();
+    await triggerAutoFirstMessage(activeId);
+  } else if (shouldRegen && !hasUserMessages) {
+    state.chats[activeChatId] = [];
+    state.chatStates[activeChatId] = {};
+    saveChats(state.chats);
+    saveChatStates(state.chatStates);
+    renderMessages();
+    await triggerAutoFirstMessage(activeId);
+  }
 }
 
 if (dom.chatScenarioBtn) {
@@ -7501,7 +7623,19 @@ document.querySelectorAll(".chat-scenario-preset").forEach((btn) => {
   });
 });
 if (dom.chatScenarioSaveBtn) {
-  dom.chatScenarioSaveBtn.addEventListener("click", () => saveChatScenario(dom.chatScenarioInput.value));
+  dom.chatScenarioSaveBtn.addEventListener("click", () => {
+    const text = dom.chatScenarioInput?.value || "";
+    const regen = dom.chatScenarioRegenToggle ? dom.chatScenarioRegenToggle.checked : false;
+    saveChatScenario(text, { regen });
+  });
+}
+if (dom.chatScenarioRestartBtn) {
+  dom.chatScenarioRestartBtn.addEventListener("click", () => {
+    if (confirm("Перезапустить этот чат с новым сценарием? Предыдущие реплики будут очищены, и персонаж откроет сцену вступительным сообщением.")) {
+      const text = dom.chatScenarioInput?.value || "";
+      saveChatScenario(text, { restart: true });
+    }
+  });
 }
 if (dom.chatScenarioResetBtn) {
   dom.chatScenarioResetBtn.addEventListener("click", () => saveChatScenario(""));

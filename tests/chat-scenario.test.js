@@ -22,7 +22,7 @@ if (typeof global.document === "undefined") {
   };
 }
 
-const { buildSystemContext } = await import("../services/promptBuilder.js");
+const { buildSystemContext, buildApiMessages } = await import("../services/promptBuilder.js");
 const { state } = await import("../js/state.js");
 
 console.log("=== Running Chat Scenario Override Tests ===");
@@ -31,7 +31,8 @@ const character = {
   id: "char_scenario_test",
   name: "Элея",
   gender: "she/her",
-  personality: "Мудрая эльфийка",
+  description: "Элея — хранительница древнего эльфийского леса в фэнтези-мире.",
+  personality: "Мудрая, сдержанная и внимательная к деталям",
   scenario: "Характерный сценарий персонажа"
 };
 const chatId = "chat_scenario_test";
@@ -64,6 +65,27 @@ const chatId = "chat_scenario_test";
   const ctx = buildSystemContext(character, "", null, null, null, chatId, []);
   assert.ok(ctx.includes("Сцена с Элея в таверне."), "Macros in chat scenario must be replaced");
   console.log("✔ Test 4 passed: macros in chat scenario are expanded.");
+}
+
+{
+  state.chatMetadata = { [chatId]: { customScenario: "Современная кофейня в центре города." } };
+  state.chats = { [chatId]: [] };
+  const ctx = buildSystemContext(character, "", null, null, null, chatId, []);
+  assert.ok(ctx.includes('active_override="true"'), "Must mark roleplay_scenario with active_override");
+  assert.ok(ctx.includes("СОХРАНЕНИЕ ХАРАКТЕРА НА 100%"), "Must include strict personality preservation directive");
+  assert.ok(ctx.includes("ПОЛНАЯ ЗАМЕНА СЦЕНАРИЯ"), "Must declare complete scenario override");
+  console.log("✔ Test 5 passed: custom scenario strictly mandates 100% personality preservation and total scenario override.");
+}
+
+{
+  state.chatMetadata = { [chatId]: { customScenario: "Исследовательская станция на орбите Марса." } };
+  state.chats = { [chatId]: [] };
+  const messages = buildApiMessages(character, "Привет, как обстановка?", null, null, {}, chatId);
+  const systemReminder = messages.find(m => m.role === "system" && m.content.includes("system_reminder"));
+  assert.ok(systemReminder, "System reminder message must exist");
+  assert.ok(systemReminder.content.includes("ТЕКУЩИЙ КАСТОМНЫЙ СЦЕНАРИЙ"), "System reminder must reinforce custom scenario");
+  assert.ok(systemReminder.content.includes("Исследовательская станция на орбите Марса"), "System reminder must contain custom scenario text");
+  console.log("✔ Test 6 passed: buildApiMessages injects custom scenario reminder into the final system_reminder.");
 }
 
 console.log("\n🚀 All Chat Scenario Override Tests Passed Successfully!\n");

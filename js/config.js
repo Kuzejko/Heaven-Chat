@@ -530,6 +530,7 @@ export function syncApiSettingsFromInputs() {
     chatLanguage: dom.chatLanguageSelect?.value || state.apiSettings.chatLanguage || "ru",
     worldGenre: dom.worldGenreSelect?.value || state.apiSettings.worldGenre || "fantasy",
     summaryMode: dom.summaryModeSelect?.value || state.apiSettings.summaryMode || "every_turn",
+    initiativeLevel: dom.initiativeLevelSelect?.value || state.apiSettings.initiativeLevel || "balanced",
     maxHistoryMessages: dom.maxHistoryMessagesSelect ? Number(dom.maxHistoryMessagesSelect.value) : (state.apiSettings.maxHistoryMessages ?? 20),
     providerSort: dom.providerSortSelect?.value || state.apiSettings.providerSort || "price",
     specificProvider: (dom.specificProviderSelect?.value !== undefined ? dom.specificProviderSelect.value : (dom.specificProviderInput?.value || state.apiSettings.specificProvider || "")).trim(),
@@ -772,6 +773,7 @@ export function renderModelOptions() {
   if (dom.chatLanguageSelect) dom.chatLanguageSelect.value = state.apiSettings.chatLanguage || "ru";
   if (dom.worldGenreSelect) dom.worldGenreSelect.value = state.apiSettings.worldGenre || "fantasy";
   if (dom.summaryModeSelect) dom.summaryModeSelect.value = state.apiSettings.summaryMode || "every_turn";
+  if (dom.initiativeLevelSelect) dom.initiativeLevelSelect.value = state.apiSettings.initiativeLevel || "balanced";
   if (dom.maxHistoryMessagesSelect) dom.maxHistoryMessagesSelect.value = String(state.apiSettings.maxHistoryMessages ?? 20);
   if (dom.providerSortSelect) dom.providerSortSelect.value = state.apiSettings.providerSort || "price";
   if (dom.specificProviderSelect) dom.specificProviderSelect.value = state.apiSettings.specificProvider || "";

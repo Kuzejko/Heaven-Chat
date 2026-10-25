@@ -57,6 +57,7 @@ export function buildSystemContext(character, userInput = "", duoPartner = null,
   const backstory = replaceMacros(character.backstory || "", character);
   const appearance = replaceMacros(character.appearance || "", character);
   const customScenario = (state.chatMetadata?.[activeChatId]?.customScenario || "").trim();
+  const isCustomScenarioActive = Boolean(customScenario && typeof sharedScenario !== "string");
   const scenario = (typeof sharedScenario === "string")
     ? sharedScenario
     : replaceMacros(customScenario || character.scenario || "", character);
@@ -98,17 +99,65 @@ Grammar Rule: ${genderInfo.enHint}
 </character_info>`);
   }
 
-  if (desc.trim()) parts.push(`<character_description>\n${desc.trim()}\n</character_description>`);
+  if (desc.trim()) {
+    if (isCustomScenarioActive) {
+      if (isRu) {
+        parts.push(`<character_description>\n${desc.trim()}\n[ПРИМЕЧАНИЕ: Данное описание служит только для понимания внешности, способностей и черт персонажа. Любые упоминания оригинального места действия, исходного задания или обстоятельств встречи полностью аннулированы активным кастомным сценарием ниже.]\n</character_description>`);
+      } else {
+        parts.push(`<character_description>\n${desc.trim()}\n[NOTE: Use this description strictly for character appearance, capabilities, and traits. Any references to default location, original mission, or meeting premise are superseded by the active custom scenario below.]\n</character_description>`);
+      }
+    } else {
+      parts.push(`<character_description>\n${desc.trim()}\n</character_description>`);
+    }
+  }
   if (personality.trim()) parts.push(`<personality>\n${personality.trim()}\n</personality>`);
   if (speech.trim()) parts.push(`<speech_style>\n${speech.trim()}\n</speech_style>`);
   if (behavior.trim()) parts.push(`<behavior_and_habits>\n${behavior.trim()}\n</behavior_and_habits>`);
   if (appearance.trim()) parts.push(`<appearance>\n${appearance.trim()}\n</appearance>`);
-  if (backstory.trim()) parts.push(`<backstory>\n${backstory.trim()}\n</backstory>`);
-  if (scenario.trim()) parts.push(`<roleplay_scenario>\n${scenario.trim()}\n</roleplay_scenario>`);
+  if (backstory.trim()) {
+    if (isCustomScenarioActive) {
+      if (isRu) {
+        parts.push(`<backstory>\n${backstory.trim()}\n[ПРИМЕЧАНИЕ: Предыстория отражает прошлый жизненный опыт персонажа. Исходная стартовая сцена заменена новым кастомным сценарием.]\n</backstory>`);
+      } else {
+        parts.push(`<backstory>\n${backstory.trim()}\n[NOTE: Backstory reflects past background. The starting roleplay scene is replaced by the custom scenario.]\n</backstory>`);
+      }
+    } else {
+      parts.push(`<backstory>\n${backstory.trim()}\n</backstory>`);
+    }
+  }
+  if (scenario.trim()) {
+    if (isCustomScenarioActive) {
+      if (isRu) {
+        parts.push(`<roleplay_scenario active_override="true">
+🚨 АКТИВНЫЙ КАСТОМНЫЙ СЦЕНАРИЙ (ВЫСШИЙ ПРИОРИТЕТ СЮЖЕТА И ОКРУЖЕНИЯ):
+${scenario.trim()}
 
-  const userSelectedGenre = state.chatMetadata?.[activeChatId]?.worldGenre || character?.worldGenre || state.apiSettings?.worldGenre || "fantasy";
+ОБЯЗАТЕЛЬНЫЕ ПРАВИЛА ОТЫГРЫША:
+1. ПОЛНАЯ ЗАМЕНА СЦЕНАРИЯ: Данный кастомный сценарий ПОЛНОСТЬЮ ЗАМЕНЯЕТ и АННУЛИРУЕТ оригинальный сценарий персонажа, его дефолтную стартовую локацию, обстановку, завязку встречи и исходные квесты.
+2. СОХРАНЕНИЕ ХАРАКТЕРА НА 100%: Ты ОБЯЗАН строго и безукоризненно сохранить аутентичный ХАРАКТЕР, манеру речи, темперамент, психологию, повадки, стиль диалогов и черты личности ${character.name}.
+3. АДАПТАЦИЯ К ОБСТОЯТЕЛЬСТВАМ: Персонаж — это в точности та же самая личность со своим уникальным голосом, но теперь действующая СТРОГО в рамках данного кастомного сценария.
+4. ИГНОРИРОВАНИЕ СТАРОГО СЕТТИНГА: Если в описании, предыстории или инструкциях персонажа упоминаются детали оригинальной локации, дефолтные квесты или знакомство из старой сцены — полностью игнорируй их в пользу нового сценария.
+</roleplay_scenario>`);
+      } else {
+        parts.push(`<roleplay_scenario active_override="true">
+🚨 ACTIVE CUSTOM SCENARIO (HIGHEST PRIORITY SETTING & PLOT):
+${scenario.trim()}
+
+MANDATORY ROLEPLAY RULES:
+1. COMPLETE SCENARIO OVERRIDE: This custom scenario COMPLETELY OVERRIDES and REPLACES the character's original default scenario, starting location, initial meeting, and default objectives.
+2. 100% PERSONALITY PRESERVATION: You MUST strictly preserve the authentic CHARACTER, speech style, psychology, mannerisms, temperament, and personality of ${character.name}.
+3. SITUATIONAL ADAPTATION: The character is the exact same distinct persona with their authentic voice, placed firmly into this new custom scenario.
+4. DISREGARD CONFLICTING DEFAULT SETTINGS: If the character description or backstory mentions default meeting locations, original quests, or old premises, completely disregard them in favor of this active custom scenario.
+</roleplay_scenario>`);
+      }
+    } else {
+      parts.push(`<roleplay_scenario>\n${scenario.trim()}\n</roleplay_scenario>`);
+    }
+  }
+
+  const userSelectedGenre = state.chatMetadata?.[activeChatId]?.worldGenre || character?.worldGenre || character?.genreKey || state.apiSettings?.worldGenre || "";
   const contextText = `${scenario} ${desc} ${personality} ${character.systemPrompt || ""} ${state.globalSystemPrompt || ""}`;
-  const isFantasyWorld = userSelectedGenre === "fantasy" || (userSelectedGenre === "any" && /фэнтези|fantasy|маги|magic|дракон|dragon|меч|sword|маг|wizard|рыцарь|knight|средневеков|паладин|гоблин|эльф|гном|заклинани/i.test(contextText));
+  const isFantasyWorld = userSelectedGenre === "fantasy" || (!isCustomScenarioActive && !userSelectedGenre && /фэнтези|fantasy|маги|magic|дракон|dragon|меч|sword|маг|wizard|рыцарь|knight|средневеков|паладин|гоблин|эльф|гном|заклинани/i.test(contextText));
 
   if (isFantasyWorld) {
     if (isRu) {
@@ -322,52 +371,62 @@ export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) 
   if (isRu) {
     if (isGm) {
       return `[STAB'S EDH — ИЕРАРХИЧЕСКИЕ ДИРЕКТИВЫ ВЕДУЩЕГО (GM)]:
-• Tier 0 (Высший суверенитет Пользователя и Stop-and-Pass):
+• Tier 0 (Высший суверенитет Пользователя и Проактивный ход):
   - КАТЕГОРИЧЕСКИЙ ЗАПРЕТ КУКЛОВОДСТВА: Никогда не пиши слова, мысли, физические ощущения, эмоциональные реакции или решения за Пользователя (${userName}). Ты управляешь ТОЛЬКО NPC и Рассказчиком.
-  - STOP-AND-PASS: Если Пользователь совершает действие, делает выпад, начинает реплику или меняет обстановку — опиши реакцию NPC / мира и НЕМЕДЛЕННО ОСТАНОВИСЬ, передав ход Пользователю. Никогда не завершай действие за него и не делай самовольных таймскипов в следующую сцену.
+  - ACTION, DRIVE & PASS (ПРОАКТИВНЫЙ ХОД ВЕДУЩЕГО):
+    1. Опиши последствия действий Пользователя и реакцию мира/NPC.
+    2. ОБЯЗАТЕЛЬНО двигай сцену вперед: развивай поведение NPC, вноси новые события, создавай выбор или напряжение. Не жди пассивно, пока игрок всё придумает сам!
+    3. ОСТАНОВИСЬ перед новым решением Пользователя, оставив открытое пространство для его ответа (не завершай действие за него и не делай самовольных таймскипов).
   - АНТИ-ЭХО: Не пересказывай и не перефразируй действия или слова Пользователя. Двигай сцену вперед через реакцию окружения.
 
 • Tier 1 (Когнитивная независимость NPC):
   - Каждый NPC действует строго из своего характера, целей, страхов и слабостей.
-  - NPC не должны быть послушными статистами — у них есть свои мотивы, сопротивление и границы.
+  - NPC не должны быть послушными статистами — у них есть свои мотивы, сопротивление, инициатива и границы.
 
 • Tier 2 (Anti-Slop & Сенсорный микро-реализм):
   - ЗАПРЕТ БАНАЛЬНЫХ ИИ-ШТАМПОВ: Исключи штампы ("дрожь пробежала по спине", "волна накрыла с головой", "воздух звенел от напряжения", "время словно замерло", "глаза потемнели", "не смог сдержать").
   - ФИЗИЧЕСКИЙ РЕАЛИЗМ: Описывай конкретные осязаемые детали: дистанцию, физический контакт, взгляд, тон голоса, дыхание, положение предметов в руках.
 
 • Tier 3 (Anti-Loop & Динамическая прогрессия сцены):
-  - КАТЕГОРИЧЕСКИЙ ЗАПРЕТ САМОПОВТОРА (ANTI-LOOP): Запрещено повторять одни и те же вводные фразы, эмоциональные циклы и одинаковые физические микро-жесты из своих предыдущих сообщений (например: раз за разом теребить кепку/одежду, переминаться с ноги на ногу, одинаково отводить взгляд, вздыхать, заикаться на одном месте).
+  - КАТЕГОРИЧЕСКИЙ ЗАПРЕТ САМОПОВТОРА (ANTI-LOOP): Запрещено повторять одни и те же вводные фразы, эмоциональные циклы и одинаковые физические микро-жесты из своих предыдущих сообщений.
   - ДВИЖЕНИЕ СЮЖЕТА: Каждое сообщение ОБЯЗАНО менять позу, предлагать свежую мысль или делать шаг вперёд. Не топчись на одном месте!`;
     }
 
     return `[STAB'S EDH — ИЕРАРХИЧЕСКИЕ ДИРЕКТИВЫ ПОВЕДЕНИЯ]:
-• Tier 0 (Высший приоритет — Абсолютный суверенитет Пользователя):
+• Tier 0 (Высший приоритет — Суверенитет Пользователя и Проактивность):
   - КАТЕГОРИЧЕСКИЙ ЗАПРЕТ КУКЛОВОДСТВА: Никогда не говори, не думай, не чувствуй и не совершай действий за Пользователя (${userName}). Отыгрывай ИСКЛЮЧИТЕЛЬНО своего персонажа.
-  - STOP-AND-PASS: Если Пользователь совершает действие, задает вопрос или делает попытку — опиши свою реакцию и ОСТАНОВИСЬ, передав ход. Не решай за Пользователя исход его попытки и не перематывай время вперед.
+  - ACTION, DRIVE & PASS (ПРОАКТИВНЫЙ ОТВЕТ И ПЕРЕДАЧА ХОДА):
+    1. Отреагируй на слова и действия Пользователя.
+    2. ОБЯЗАТЕЛЬНО сделай СВОЙ собственный шаг: прояви инициативу, начни новое действие, задай встречный вопрос, измени обстановку или предложи неожиданный поворот. Не будь пассивным слушателем!
+    3. ОСТАНОВИСЬ, оставив открытое пространство для ответа Пользователя: никогда не решай за Пользователя исход его будущих действий и не перематывай время вперед.
   - АНТИ-ЭХО: Не дублируй и не пересказывай последнюю реплику Пользователя своими словами перед ответом.
 
-• Tier 1 (Личность и психологический реализм):
-  - Оставайся в характере даже под давлением. Не подстраивайся мгновенно под Пользователя, сохраняй свои границы, сомнения, принципы и недостатки.
-  - Эмоции развиваются постепенно. Не перескакивай из гнева или безразличия в обожание за одну реплику.
+• Tier 1 (Личность, автономность и психологический реализм):
+  - Оставайся в характере даже под давлением. Проявляй собственные желания, принципы, симпатии или капризы.
+  - Не будь пассивным зеркалом — вноси свои темы, спорь, предлагай варианты и двигай сцену.
+  - Эмоции развиваются естественно и постепенно.
 
 • Tier 2 (Anti-Slop & Соматический микро-реализм):
   - ПОЛНЫЙ ЗАПРЕТ СЛОПА: Исключи из лексикона заезженные ИИ-штампы: "дрожь пробежала по телу/спине", "накатила волна", "время остановилось", "электрический разряд между ними", "потемневший взгляд", "не смог удержаться".
   - МИКРО-ДЕЙСТВИЯ: Показывай состояние персонажа через физику тела — сбитое дыхание, перенос веса с ноги на ногу, мелкую моторику пальцев, перевод взгляда, паузы в речи.
 
 • Tier 3 (Anti-Loop & Динамическая прогрессия сцены):
-  - СТРОГИЙ ЗАПРЕТ САМОПОВТОРА (ANTI-LOOP): Категорически запрещено повторять одни и те же фразы, эмоциональные циклы и одинаковые физические микро-жесты из своих предыдущих сообщений (например: раз за разом теребить кепку/одежду, переминаться с ноги на ногу, одинаково отводить взгляд, вздыхать, заикаться на одном месте).
+  - СТРОГИЙ ЗАПРЕТ САМОПОВТОРА (ANTI-LOOP): Категорически запрещено повторять одни и те же фразы, эмоциональные циклы и одинаковые физические микро-жесты из своих предыдущих сообщений.
   - СВЕЖЕЕ ДЕЙСТВИЕ: Каждая новая реплика обязана менять позу персонажа, предлагать свежую мысль или делать шаг вперёд по сюжету. Не застревай в одном зацикленном действии!`;
   }
 
   if (isGm) {
     return `[STAB'S EDH — HIERARCHICAL DIRECTIVES FOR GM]:
-• Tier 0 (Absolute User Sovereignty & Stop-and-Pass):
+• Tier 0 (Absolute User Sovereignty & Proactive Agency):
   - STRICT ANTI-PUPPETEERING: NEVER write speech, thoughts, feelings, somatic reactions, or choices for the User (${userName}). You control ONLY NPCs and the Narrator.
-  - STOP-AND-PASS: When the User takes an action or attempts a feat, describe the world/NPC reaction and STOP immediately. Never auto-resolve User attempts or timeskip into the next scene without user agency.
+  - ACTION, DRIVE & PASS (GM PROACTIVITY):
+    1. Describe the consequences of the User's actions and NPC reactions.
+    2. PROACTIVELY ADVANCE THE SCENE: Introduce new complications, NPC motives, or environmental shifts. Do not wait passively for the user to drive everything.
+    3. PASS THE TURN: Stop right where the User must make their next choice. Never auto-resolve User attempts or timeskip into the next scene without user agency.
   - ANTI-ECHO: Do not parrot, rephrase, or summarize the User's input. Drive narrative progression through fresh world responses.
 
 • Tier 1 (NPC Cognitive Agency):
-  - Every NPC acts purely from their own personality, motivations, flaws, and distinct voice. They are not compliant sycophants.
+  - Every NPC acts purely from their own personality, motivations, flaws, initiative, and distinct voice. They are not compliant sycophants.
 
 • Tier 2 (Anti-Slop & Sensory Grounding):
   - BANNED CLICHÉS: Strictly avoid "shivers down spine", "hit like a freight train", "air crackled with tension", "time slowed down", "eyes darkened with...", "couldn't help but".
@@ -378,13 +437,16 @@ export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) 
   }
 
   return `[STAB'S EDH — EXECUTION DIRECTIVE HIERARCHY]:
-• Tier 0 (Absolute Priority — User Sovereignty & Anti-Puppeteering):
+• Tier 0 (Absolute Priority — User Sovereignty & Proactive Agency):
   - ZERO PUPPETEERING: NEVER write dialogue, thoughts, feelings, bodily sensations, or physical movements for the User (${userName}). You portray ONLY yourself.
-  - STOP-AND-PASS: When the User acts or speaks, respond to that turn and STOP. Pass the turn back. Never auto-resolve the User's attempts or narrate ahead in time.
+  - ACTION, DRIVE & PASS (PROACTIVE TURN & PASS):
+    1. Respond authentically to the User's actions and speech.
+    2. TAKE THE INITIATIVE: Actively take your own turn, advance your agenda, introduce a new topic/action, or ask an engaging question. Do not merely react as a passive respondent.
+    3. PASS THE TURN: Conclude your action and stop, allowing the User agency to react. Never narrate the User's reaction or jump forward in time.
   - ANTI-ECHO: Do not mirror or rephrase the User's last message. Advance the narrative through genuine new reaction.
 
 • Tier 1 (Psychological Grounding & Persona Fidelity):
-  - Stay true to your distinct personality, moral boundaries, and flaws. Do not become overly submissive or agreeable without earned narrative reason.
+  - Stay true to your distinct personality, moral boundaries, desires, and flaws. Do not become overly submissive or passive.
   - Emotional persistence: Emotions develop gradually.
 
 • Tier 2 (Anti-Slop & Sensory Micro-Prose):
@@ -512,6 +574,33 @@ export function buildApiMessages(character, userInput, quoteIndex = null, duoPar
       }
     }
 
+    const gmInitiativeLevel = state.apiSettings?.initiativeLevel || "balanced";
+    if (gmInitiativeLevel === "high") {
+      instructionParts.push(isRuMsg
+        ? `🔥 ВЫСОКИЙ УРОВЕНЬ ИНИЦИАТИВЫ ВЕДУЩЕГО:
+- Ведущий активно двигает сюжет: подкидывай события, развивай действия NPC, создавай новые вызовы и повороты судьбы.
+- Не жди подсказок от игрока: если пауза или игрок пишет мало — смело развивай обстановку!`
+        : `🔥 HIGH GM INITIATIVE:
+- Proactively advance the plot: trigger events, dynamic NPC interactions, and twists.
+- Do not wait passively for user prompts.`);
+    } else if (gmInitiativeLevel === "follower") {
+      instructionParts.push(isRuMsg
+        ? `🧘 СПОКОЙНЫЙ ТЕМП ВЕДУЩЕГО:
+- Реагируй вдумчиво, позволяя игроку задавать основной темп и направление событий.`
+        : `🧘 GENTLE GM TEMPO:
+- Respond thoughtfully, allowing the player to set the primary pace.`);
+    }
+
+    const inputStr = typeof userInput === "string" ? userInput : (Array.isArray(userInput) ? "" : String(userInput || ""));
+    const isGmCharTurn = !inputStr.trim() || inputStr.trim() === "[Ход персонажа]" || inputStr.trim() === "[Character Turn]" || inputStr.includes("передавая инициативу") || inputStr.includes("passing initiative");
+    if (isGmCharTurn) {
+      instructionParts.push(isRuMsg
+        ? `⚡ САМОСТОЯТЕЛЬНЫЙ ХОД ВЕДУЩЕГО И МИРА:
+Игрок передал ход миру. Опиши развитие ситуации, реакцию NPC или новое событие!`
+        : `⚡ AUTONOMOUS WORLD TURN:
+The user passed the turn. Describe unfolding events, NPC actions, or an environmental shift!`);
+    }
+
     const responseLength = state.apiSettings?.responseLength || "medium";
     if (responseLength === "short") {
       instructionParts.push(isRuMsg ? "Длина ответа: КРАТКИЙ (1-2 предложения)." : "Length: SHORT (1-2 sentences).");
@@ -558,6 +647,20 @@ export function buildApiMessages(character, userInput, quoteIndex = null, duoPar
 If in this message the character has FULLY ACHIEVED the goal of an active directive, add this tag at the VERY END of your response:
 <!-- GOAL_REACHED: 1 --> (where 1 is the directive number). If not finished, do not add the tag.`;
       instructionParts.push(autoFinishReminder);
+    }
+
+    const activeGmScene = state.gmScenes.find(s => s.id === activeId);
+    const gmSceneScenario = activeGmScene?.scenario ? replaceMacros(activeGmScene.scenario, { name: userName }).trim() : "";
+    if (gmSceneScenario) {
+      if (isRuMsg) {
+        instructionParts.push(`🎬 СЦЕНАРИЙ И ОБСТАНОВКА СЦЕНЫ (ВЫСШИЙ ПРИОРИТЕТ):
+Текущая сцена разворачивается строго в рамках сценария: "${gmSceneScenario}".
+- Описывай окружение, действия и реакции всех активных персонажей и Рассказчика строго в контексте данной сцены.`);
+      } else {
+        instructionParts.push(`🎬 SCENE SCENARIO & SETTING (HIGHEST PRIORITY):
+The scene unfolds strictly within the scenario: "${gmSceneScenario}".
+- Describe the setting, actions, and reactions of all active characters and the Narrator strictly in the context of this scene.`);
+      }
     }
     
     instructionParts.push(`</system_reminder>`);
@@ -660,6 +763,46 @@ You are NOT continuing ${duoPartner.name}'s dialogue. Do NOT address ${duoPartne
     }
   }
 
+  // 2b. Character Initiative & Agency
+  const initiativeLevel = state.apiSettings?.initiativeLevel || "balanced";
+  if (initiativeLevel === "high") {
+    instructionParts.push(isRuMsg
+      ? `🔥 ВЫСОКИЙ УРОВЕНЬ ИНИЦИАТИВЫ (СЮЖЕТНЫЙ ДРАЙВЕР):
+- Персонаж — активный лидер и двигатель сцены, а не пассивный слушатель.
+- Смело развивай обстановку, совершай неожиданные действия, задавай провокационные вопросы, ставь собеседника перед интересным выбором.
+- Если реплика собеседника короткая или пассивная — бери управление сценой в свои руки и двигай сюжет дальше.`
+      : `🔥 HIGH INITIATIVE (SCENE DRIVER):
+- The character is a proactive driver of the scene, not a passive respondent.
+- Confidently advance the situation, perform autonomous actions, ask engaging questions, or introduce new developments.
+- If the User's input is brief or passive, take the initiative and propel the narrative forward.`);
+  } else if (initiativeLevel === "balanced") {
+    instructionParts.push(isRuMsg
+      ? `⚖️ СБАЛАНСИРОВАННАЯ ИНИЦИАТИВА (ЖИВОЙ ПАРТНЕР):
+- Персонаж является равноправным участником сцены: реагируй на реплику собеседника и обязательно делай свой собственный ответный шаг.
+- Проявляй собственные желания, любопытство, меняй действия и не застревай в ожидании команд.`
+      : `⚖️ BALANCED INITIATIVE (ACTIVE ROLEPLAY PARTNER):
+- The character is an equal participant: react to the user and proactively make your own move.
+- Express personal intentions, curiosity, and dynamic actions rather than waiting to be prompted.`);
+  } else if (initiativeLevel === "follower") {
+    instructionParts.push(isRuMsg
+      ? `🧘 СПОКОЙНАЯ ИНИЦИАТИВА (ВЕДОМЫЙ):
+- Персонаж внимательно следует за темпом и направлением, заданным собеседником, отвечая чутко и вдумчиво.`
+      : `🧘 GENTLE INITIATIVE (FOLLOWER):
+- The character attentively follows the pace and direction set by the user, responding thoughtfully.`);
+  }
+
+  const inputStr = typeof userInput === "string" ? userInput : (Array.isArray(userInput) ? "" : String(userInput || ""));
+  const isSoloCharTurn = !inputStr.trim() || inputStr.trim() === "[Ход персонажа]" || inputStr.trim() === "[Character Turn]" || inputStr.includes("передавая инициативу") || inputStr.includes("passing initiative");
+  if (isSoloCharTurn) {
+    instructionParts.push(isRuMsg
+      ? `⚡ ХОД ПЕРСОНАЖА (САМОСТОЯТЕЛЬНОЕ ДЕЙСТВИЕ):
+Собеседник передал ход тебе или выдерживает паузу.
+- Сделай самостоятельный шаг: опиши свои мысли/действия, начни новую реплику, обрати внимание на окружение или продвинь ситуацию вперед!`
+      : `⚡ CHARACTER'S TURN (AUTONOMOUS ACTION):
+The user passed the turn to you or paused.
+- Take autonomous action: describe your movements/thoughts, speak up, notice something in the environment, or advance the scene!`);
+  }
+
   // 3. Dynamic States
   const moodPromptMap = {
     happy: "Happy, warm, friendly.",
@@ -730,6 +873,21 @@ If in this response your character has FULLY ACHIEVED the goal of an active dire
 <!-- GOAL_REACHED: 1 --> (where 1 is the directive number from above).
 If the goal is not yet finished, do not include this tag.`;
     instructionParts.push(autoFinishReminder);
+  }
+
+  const customScenario = (state.chatMetadata?.[chatId]?.customScenario || "").trim();
+  if (customScenario && !duoPartner) {
+    if (isRuMsg) {
+      instructionParts.push(`🎬 ТЕКУЩИЙ КАСТОМНЫЙ СЦЕНАРИЙ (БЕЗУСЛОВНЫЙ ПРИОРИТЕТ ОКРУЖЕНИЯ):
+Ты находишься строго в сцене: "${customScenario}".
+- Оригинальный сюжет и дефолтное место встречи персонажа полностью отменены.
+- Отыгрывай аутентичный характер, манеру речи, темперамент и индивидуальность ${character.name}, но действуй исключительно внутри этой ситуации.`);
+    } else {
+      instructionParts.push(`🎬 ACTIVE CUSTOM SCENARIO (ABSOLUTE PRIORITY):
+Current scene context: "${customScenario}".
+- The original default plot and meeting location are completely superseded.
+- Embody the authentic personality, voice, and mannerisms of ${character.name}, but stay strictly within this scenario.`);
+    }
   }
 
   instructionParts.push(`</system_reminder>`);
