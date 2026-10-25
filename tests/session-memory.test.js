@@ -257,11 +257,38 @@ assert.strictEqual(capped.unresolved_threads[capped.unresolved_threads.length - 
 
 const manyEvents = Array.from({ length: 70 }, (_, i) => ({ summary: `Событие ${i}`, consequences: "", timestamp: "" }));
 const cappedEvents = smartMergeSessionMemory(createDefaultSessionMemory(), { key_events: manyEvents }, 1);
-assert.strictEqual(cappedEvents.key_events.length, 60, "Stored key events must be capped");
+assert.strictEqual(cappedEvents.key_events.length, 30, "Stored key events must be capped at 30 to prevent token explosion");
 const promptMd = formatMemoryToMarkdown(cappedEvents);
 assert.ok(promptMd.includes("Событие 69"), "Newest event must be in prompt");
-assert.ok(promptMd.includes("Событие 58"), "Prompt must include the last 12 events");
-assert.ok(!promptMd.includes("Событие 57"), "Prompt must not include older events");
+assert.ok(promptMd.includes("Событие 60"), "Prompt must include the last 10 events");
+assert.ok(!promptMd.includes("Событие 59"), "Prompt must not include older events");
 console.log("✔ Test 6 passed: resolved threads removed, lists and events capped.");
+
+// -------------------------------------------------------------
+// Test 7: recordSessionMemorySnapshot & selectSessionMemoryRollback
+// -------------------------------------------------------------
+const { recordSessionMemorySnapshot, selectSessionMemoryRollback } = await import("../services/sessionMemoryService.js");
+
+const snapMap = {};
+const memAt10 = { ...createDefaultSessionMemory(), current_status: "В таверне", last_updated_message_id: 10 };
+const memAt20 = { ...createDefaultSessionMemory(), current_status: "На тракте", last_updated_message_id: 20 };
+const memAt30 = { ...createDefaultSessionMemory(), current_status: "В замке", last_updated_message_id: 30 };
+
+recordSessionMemorySnapshot(snapMap, "chat_roll", 10, memAt10);
+recordSessionMemorySnapshot(snapMap, "chat_roll", 20, memAt20);
+recordSessionMemorySnapshot(snapMap, "chat_roll", 30, memAt30);
+
+// Rollback to message 22 should select snapshot at message 20
+const rollback22 = selectSessionMemoryRollback(snapMap, "chat_roll", 22);
+assert.ok(rollback22.memory, "Snapshot at 20 should be selected");
+assert.strictEqual(rollback22.memory.current_status, "На тракте");
+assert.strictEqual(rollback22.snapshots.length, 2, "Future snapshot (30) must be removed");
+
+// Rollback to message 5 (before any snapshot) should return null
+const rollback5 = selectSessionMemoryRollback(snapMap, "chat_roll", 5);
+assert.strictEqual(rollback5.memory, null, "No snapshot prior to message 5");
+assert.strictEqual(rollback5.snapshots.length, 0);
+
+console.log("✔ Test 7 passed: snapshot recording and rollback selection work accurately.");
 
 console.log("\n🚀 All Structured Session Memory Tests Passed Successfully!\n");

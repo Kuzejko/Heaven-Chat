@@ -19,6 +19,7 @@ import {
   loadSidebarTab,
   loadCharacterDirectives,
   loadSessionMemories,
+  loadSessionMemorySnapshots,
   loadLastPromptTokens,
   loadLastCompletionTokens,
   loadLastCost
@@ -51,6 +52,7 @@ export const state = {
   lastCost: loadLastCost(),
   chatSummaries: loadChatSummaries(),
   sessionMemories: loadSessionMemories(),
+  sessionMemorySnapshots: loadSessionMemorySnapshots(),
   chatSummarizedMessageCount: loadChatSummarizedMessageCount(),
   chatSummarySnapshots: loadChatSummarySnapshots(),
   gmScenes: loadGmScenes(),

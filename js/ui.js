@@ -144,6 +144,8 @@ export const dom = {
   moodSelect: document.getElementById("moodSelect"),
   stateProposalList: document.getElementById("stateProposalList"),
   manageCharactersBtn: document.getElementById("manageCharactersBtn"),
+  saveSettingsBtn: document.getElementById("saveSettingsBtn"),
+  closeSettingsBtn: document.getElementById("closeSettingsBtn"),
   debugMenuBtn: document.getElementById("debugMenuBtn"),
   
   chatSelectorContainer: document.getElementById("chatSelectorContainer"),

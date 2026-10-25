@@ -7,8 +7,8 @@ import { getActivePersona } from "./storage.js";
 export const MEMORY_LIMITS = {
   listItems: 15,
   recentEvents: 8,
-  keyEventsStored: 60,
-  keyEventsInPrompt: 12,
+  keyEventsStored: 30,
+  keyEventsInPrompt: 10,
   unresolvedThreads: 12
 };
 
@@ -378,10 +378,40 @@ export function cleanJsonOutput(raw) {
  */
 export const CODEX_AUTO_UPDATE_EVERY = 10;
 export const CODEX_AUTO_UPDATE_MAX_MESSAGES = 40;
+export const CODEX_CLEANUP_EVERY_UPDATES = 5;
+export const CODEX_CLEANUP_WINDOW = 100;
+export const SESSION_MEMORY_SNAPSHOT_LIMIT = 10;
 
 export function getCodexProcessedCount(memory) {
   const processed = Number(memory?.last_updated_message_id);
   return Number.isFinite(processed) && processed > 0 ? processed : 0;
+}
+
+/**
+ * Appends a {msgCount, memory} snapshot for a chat, capping the stored history.
+ * Mirrors chatSummarySnapshots so a regenerate/delete can roll memory back
+ * to the last state that still matches the canon chat.
+ */
+export function recordSessionMemorySnapshot(snapshotsMap, chatId, msgCount, memory) {
+  if (!chatId || !memory) return snapshotsMap;
+  const list = (snapshotsMap[chatId] || []).filter(s => s && typeof s.msgCount === "number" && s.msgCount !== msgCount);
+  list.push({ msgCount, memory });
+  snapshotsMap[chatId] = list.slice(-SESSION_MEMORY_SNAPSHOT_LIMIT);
+  return snapshotsMap;
+}
+
+/**
+ * Picks the newest snapshot recorded at or before targetCount and returns it
+ * together with the pruned snapshot list. Returns null memory when nothing
+ * fits (caller then resets to a fresh empty memory — polluted beats absent).
+ */
+export function selectSessionMemoryRollback(snapshotsMap, chatId, targetCount) {
+  const list = (snapshotsMap[chatId] || []).filter(s => s && typeof s.msgCount === "number" && s.msgCount <= targetCount);
+  if (list.length === 0) {
+    return { memory: null, snapshots: [] };
+  }
+  const best = list[list.length - 1];
+  return { memory: best.memory, snapshots: list };
 }
 
 /**
@@ -426,12 +456,21 @@ export async function extractStructuredMemoryFromLLM(existingMemory, messages, o
     .filter(Boolean);
 
   const currentMemoryJson = JSON.stringify(memory, null, 2);
+  const cleanupBlock = options.cleanup
+    ? `
+=== CLEANUP PASS (PERIODIC) ===
+This is a periodic full cleanup over a wider dialogue window. You MUST:
+1. Rewrite setting.location, setting.time, setting.atmosphere, current_status and every character's physical_state/emotional_state to match the LATEST visible dialogue state — even if the new messages do not mention them.
+2. If the visible dialogue contradicts a fact in EXISTING MEMORY, trust the dialogue and fix or remove that fact.
+3. List in "resolved_threads" any threads that are stale, forgotten, or no longer relevant to the current scene.
+`
+    : "";
   const userPrompt = `=== EXISTING MEMORY (JSON) ===
 ${currentMemoryJson}
 
 === NEW DIALOGUE MESSAGES (Up to Message ID: ${lastMsgId}) ===
 ${transcriptLines.join("\n")}
-
+${cleanupBlock}
 === INSTRUCTIONS ===
 Update the Memory JSON based on the dialogue messages above.
 Preserve all established facts, character relationships, and unresolved threads. List threads closed by the new messages in "resolved_threads".
@@ -444,43 +483,50 @@ Return ONLY the raw updated JSON object. Ensure "last_updated_message_id" is set
     { role: "user", content: userPrompt }
   ];
 
+  const callModel = async (model) => sendMessageNonStream({
+    apiKey: apiConfig.apiKey,
+    baseUrl: apiConfig.baseUrl,
+    model,
+    apiProvider: apiConfig.apiProvider,
+    messages: apiMessages,
+    temperature: 0.3,
+    maxTokens: 4096,
+    timeoutMs: 60000
+  });
+
+  const tryParse = (raw) => {
+    const cleaned = cleanJsonOutput(raw);
+    return JSON.parse(cleaned);
+  };
+
   let responseText;
+  let usedModel = primaryModel;
   try {
-    responseText = await sendMessageNonStream({
-      apiKey: apiConfig.apiKey,
-      baseUrl: apiConfig.baseUrl,
-      model: primaryModel,
-      apiProvider: apiConfig.apiProvider,
-      messages: apiMessages,
-      temperature: 0.3,
-      maxTokens: 2048,
-      timeoutMs: 60000
-    });
+    responseText = await callModel(primaryModel);
   } catch (err) {
     if (primaryModel !== apiConfig.model && apiConfig.model) {
       console.warn(`[SessionMemory] Primary model "${primaryModel}" failed, falling back to chat model "${apiConfig.model}":`, err);
-      responseText = await sendMessageNonStream({
-        apiKey: apiConfig.apiKey,
-        baseUrl: apiConfig.baseUrl,
-        model: apiConfig.model,
-        apiProvider: apiConfig.apiProvider,
-        messages: apiMessages,
-        temperature: 0.3,
-        maxTokens: 2048,
-        timeoutMs: 60000
-      });
+      usedModel = apiConfig.model;
+      responseText = await callModel(apiConfig.model);
     } else {
       throw err;
     }
   }
 
-  const cleaned = cleanJsonOutput(responseText);
   let parsed;
   try {
-    parsed = JSON.parse(cleaned);
-  } catch (err) {
-    console.error("[SessionMemory] Failed to parse LLM JSON response:", cleaned, err);
-    throw new Error(`Ошибка парсинга JSON памяти: ${err.message}`);
+    parsed = tryParse(responseText);
+  } catch (firstErr) {
+    // One retry: models occasionally truncate or wrap the JSON; a fresh
+    // generation usually lands valid output. Cheaper than losing the update.
+    console.warn("[SessionMemory] JSON parse failed, retrying extraction once:", firstErr.message);
+    try {
+      const retryText = await callModel(usedModel);
+      parsed = tryParse(retryText);
+    } catch (secondErr) {
+      console.error("[SessionMemory] Failed to parse LLM JSON response after retry:", secondErr);
+      throw new Error(`Ошибка парсинга JSON памяти: ${secondErr.message}`);
+    }
   }
 
   // Perform non-destructive smart merge

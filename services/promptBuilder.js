@@ -1,7 +1,7 @@
 import { state, getChatStates } from "../js/state.js";
 import { getActivePersona, getActiveChatId, saveChatSummaries, saveChatSummarizedMessageCount, loadPinnedFacts, MOOD_BEHAVIORS, getStageBehavior, getSessionMemory } from "./storage.js";
 import { retrieveRelevantMemories } from "./ragService.js";
-import { formatMemoryToMarkdown } from "./sessionMemoryService.js";
+import { formatMemoryToMarkdown, getCodexProcessedCount } from "./sessionMemoryService.js";
 
 export function replaceMacros(text, character) {
   if (!text) return "";
@@ -268,9 +268,9 @@ Avoid all modern anachronisms (headphones, phones, electricity, plastic).
 
   const sessionMemory = getSessionMemory(activeChatId);
   if (sessionMemory) {
-    const codexMd = formatMemoryToMarkdown(sessionMemory);
-    if (codexMd && codexMd.trim()) {
-      parts.push(`<session_memory_codex>\n${codexMd.trim()}\n</session_memory_codex>`);
+    const codexBlock = buildSessionCodexBlock(sessionMemory, chat.length, isRu);
+    if (codexBlock) {
+      parts.push(codexBlock);
     }
   }
 
@@ -367,6 +367,72 @@ export function sanitizeAssistantHistoryForPrompt(text) {
   return ensureCleanTextEnding(clean);
 }
 
+// Detects the self-reinforcing "И..., и..., и..." / "And..., and..." style loop
+// in the character's own recent replies.
+export function detectAndChainLoop(historyMessages = []) {
+  const recentAssistant = historyMessages
+    .filter((m) => m && m.role === "assistant" && typeof m.content === "string" && m.content.trim())
+    .slice(-4);
+  if (recentAssistant.length < 2) return false;
+
+  let flaggedCount = 0;
+  for (const msg of recentAssistant) {
+    const text = msg.content;
+    // Sentences opening with the conjunction "И"/"And" (markdown asterisks/quotes allowed before them)
+    const sentenceStarts = (text.match(/(?:^|[.!?…\n\r"«*»]+)\s*(?:И|и|And|and)\s/g) || []).length;
+    // Clauses chained together with ", и" / ", and"
+    const conjunctionChains = (text.match(/,\s*(?:и|and)\s/gi) || []).length;
+    if (sentenceStarts >= 2 || conjunctionChains >= 4 || (sentenceStarts >= 1 && conjunctionChains >= 3)) {
+      flaggedCount++;
+    }
+  }
+  return flaggedCount >= 2;
+}
+
+// Unified response-length directive, shared by Solo and GM branches.
+// Keeps both modes on the same scale and fully localized (ru/en).
+export function getResponseLengthDirective(responseLength = "medium", isRu = true) {
+  switch (responseLength) {
+    case "short":
+      return isRu
+        ? "Длина ответа: КРАТКИЙ — строго 1-3 предложения в сумме. Никакой воды и лишних абзацев."
+        : "Response length: SHORT — strictly 1-3 sentences in total. No filler, no extra paragraphs.";
+    case "long":
+      return isRu
+        ? "Длина ответа: ПОДРОБНЫЙ — 4-5 абзацев. Раскрой действия, детали и реплики полноценно."
+        : "Response length: LONG — 4-5 paragraphs. Fully develop actions, details, and dialogue.";
+    case "huge":
+      return isRu
+        ? "Длина ответа: МАКСИМАЛЬНО ПОДРОБНЫЙ — 6+ абзацев. Пиши развёрнуто, глубоко и обстоятельно."
+        : "Response length: MAXIMUM DETAIL — 6+ paragraphs. Write expansively and thoroughly.";
+    case "adaptive":
+      return isRu
+        ? "Длина ответа: АДАПТИВНАЯ — сам подбирай объём под ритм сцены: короткая реплика в быстром диалоге, развёрнутая — в ключевые моменты. Не растягивай текст искусственно и не обрезай важное."
+        : "Response length: ADAPTIVE — match the scene's rhythm yourself: brief replies in fast-paced dialogue, fuller ones at key moments. Never pad artificially or cut off what matters.";
+    case "medium":
+    default:
+      return isRu
+        ? "Длина ответа: СРЕДНИЙ — 2-3 коротких абзаца."
+        : "Response length: MEDIUM — 2-3 short paragraphs.";
+  }
+}
+
+// Builds the structured-memory block with a freshness marker: when the codex
+// lags behind the live chat, the model is told which layer holds the current truth.
+function buildSessionCodexBlock(memory, chatLength, isRu) {
+  const codexMd = formatMemoryToMarkdown(memory);
+  if (!codexMd || !codexMd.trim()) return "";
+  const processedCount = getCodexProcessedCount(memory);
+  const staleBy = chatLength - processedCount;
+  let note = "";
+  if (processedCount > 0 && staleBy > 0) {
+    note = isRu
+      ? `\n[ПРИМЕЧАНИЕ: Эта память обновлена ${staleBy} сообщ. назад. Если она расходится с саммари или последними сообщениями — ТЕКУЩЕЕ состояние определяют саммари и недавний диалог, а не этот блок.]`
+      : `\n[NOTE: This memory was last updated ${staleBy} messages ago. If it conflicts with the story summary or recent messages, the CURRENT state is defined by the summary and recent dialogue, not this block.]`;
+  }
+  return `<session_memory_codex>\n${codexMd.trim()}${note}\n</session_memory_codex>`;
+}
+
 export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) {
   if (isRu) {
     if (isGm) {
@@ -389,6 +455,7 @@ export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) 
 
 • Tier 3 (Anti-Loop & Динамическая прогрессия сцены):
   - КАТЕГОРИЧЕСКИЙ ЗАПРЕТ САМОПОВТОРА (ANTI-LOOP): Запрещено повторять одни и те же вводные фразы, эмоциональные циклы и одинаковые физические микро-жесты из своих предыдущих сообщений.
+  - ЗАПРЕТ ЦЕПОЧЕК «И»: Запрещено начинать подряд идущие предложения с союза «И» и нанизывать действия через «и..., и..., и...» ("И он встал, и пошёл, и взял..."). Каждое предложение начинай с нового слова; чередуй синтаксис: короткие рубленые фразы, деепричастные обороты, сложноподчинённые конструкции.
   - ДВИЖЕНИЕ СЮЖЕТА: Каждое сообщение ОБЯЗАНО менять позу, предлагать свежую мысль или делать шаг вперёд. Не топчись на одном месте!`;
     }
 
@@ -412,6 +479,7 @@ export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) 
 
 • Tier 3 (Anti-Loop & Динамическая прогрессия сцены):
   - СТРОГИЙ ЗАПРЕТ САМОПОВТОРА (ANTI-LOOP): Категорически запрещено повторять одни и те же фразы, эмоциональные циклы и одинаковые физические микро-жесты из своих предыдущих сообщений.
+  - ЗАПРЕТ ЦЕПОЧЕК «И»: Запрещено начинать подряд идущие предложения с союза «И» и нанизывать действия через «и..., и..., и...» ("И я встал, и пошёл, и взял..."). Каждое предложение начинай с нового слова; чередуй синтаксис: короткие рубленые фразы, деепричастные обороты, сложноподчинённые конструкции.
   - СВЕЖЕЕ ДЕЙСТВИЕ: Каждая новая реплика обязана менять позу персонажа, предлагать свежую мысль или делать шаг вперёд по сюжету. Не застревай в одном зацикленном действии!`;
   }
 
@@ -433,7 +501,8 @@ export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) 
   - SOMATIC PROSE: Ground actions in concrete physics: posture, eye movement, vocal cadence, physical space, and tactile feedback.
 
 • Tier 3 (Anti-Loop & Dynamic Scene Progression):
-  - ANTI-LOOP: NEVER repeat identical physical micro-gestures, nervous ticks, speech pauses, or phrasing from your previous messages. Advance the scene through fresh interactions.`;
+  - ANTI-LOOP: NEVER repeat identical physical micro-gestures, nervous ticks, speech pauses, or phrasing from your previous messages. Advance the scene through fresh interactions.
+  - NO "AND"-CHAINS: Never start consecutive sentences with "And" or string actions together with "and..., and..., and...". Begin every sentence with a fresh word; vary your syntax: short fragments, participial phrases, subordinate clauses.`;
   }
 
   return `[STAB'S EDH — EXECUTION DIRECTIVE HIERARCHY]:
@@ -454,7 +523,8 @@ export function getStabsEdhPrompt(isRu = true, userName = "User", isGm = false) 
   - SENSORY GROUNDING: Convey emotion through concrete physical actions — breathing rhythm, posture shifts, gaze fixation, tactile contact, vocal inflection.
 
 • Tier 3 (Anti-Loop & Narrative Progression):
-  - ANTI-LOOP: STRICTLY FORBIDDEN to loop or repeat identical physical micro-gestures, verbal hesitations, nervous fidgeting, or sentence patterns from your earlier turns. Each response MUST feature fresh action and move the scene forward.`;
+  - ANTI-LOOP: STRICTLY FORBIDDEN to loop or repeat identical physical micro-gestures, verbal hesitations, nervous fidgeting, or sentence patterns from your earlier turns. Each response MUST feature fresh action and move the scene forward.
+  - NO "AND"-CHAINS: Never start consecutive sentences with "And" or string actions together with "and..., and..., and...". Begin every sentence with a fresh word; vary your syntax: short fragments, participial phrases, subordinate clauses.`;
 }
 
 export function buildApiMessages(character, userInput, quoteIndex = null, duoPartner = null, duoStates = null, explicitChatId = null, sharedScenario = null, customRagMemories = null) {
@@ -485,6 +555,7 @@ export function buildApiMessages(character, userInput, quoteIndex = null, duoPar
   }
 
   const isRuMsg = (state.apiSettings?.chatLanguage || "ru") === "ru";
+  const andChainLoopDetected = detectAndChainLoop(activeHistory);
 
   const apiHistory = activeHistory.map((item) => {
     let content = item.content;
@@ -574,6 +645,18 @@ export function buildApiMessages(character, userInput, quoteIndex = null, duoPar
       }
     }
 
+    if (andChainLoopDetected) {
+      instructionParts.push(isRuMsg
+        ? `🚨 КРИТИЧЕСКИЙ СБОЙ СТИЛЯ — ЦЕПОЧКИ «И»:
+В твоих последних ответах обнаружен однообразный паттерн: предложения подряд начинаются с «И», действия нанизаны через «и..., и..., и...».
+- НЕМЕДЛЕННО ПРЕКРАТИ: каждое новое предложение начинай со слова, отличного от начала предыдущих.
+- Разнообразь синтаксис: короткие фразы. Деепричастные обороты — они ускоряют темп. Сложноподчинённые конструкции, где уместно.`
+        : `🚨 CRITICAL STYLE FAILURE — "AND"-CHAINS:
+Your recent replies show a monotonous pattern: consecutive sentences opening with "And", actions strung together with "and..., and..., and...".
+- STOP immediately: begin every sentence with a different word than the previous ones.
+- Vary your syntax: short fragments. Participial phrases — they quicken the pace. Subordinate clauses where fitting.`);
+    }
+
     const gmInitiativeLevel = state.apiSettings?.initiativeLevel || "balanced";
     if (gmInitiativeLevel === "high") {
       instructionParts.push(isRuMsg
@@ -601,16 +684,7 @@ export function buildApiMessages(character, userInput, quoteIndex = null, duoPar
 The user passed the turn. Describe unfolding events, NPC actions, or an environmental shift!`);
     }
 
-    const responseLength = state.apiSettings?.responseLength || "medium";
-    if (responseLength === "short") {
-      instructionParts.push(isRuMsg ? "Длина ответа: КРАТКИЙ (1-2 предложения)." : "Length: SHORT (1-2 sentences).");
-    } else if (responseLength === "medium") {
-      instructionParts.push(isRuMsg ? "Длина ответа: СРЕДНИЙ (2 коротких абзаца)." : "Length: MEDIUM (2 short paragraphs).");
-    } else if (responseLength === "long") {
-      instructionParts.push(isRuMsg ? "Длина ответа: ПОДРОБНЫЙ (3 абзаца)." : "Length: LONG (3 paragraphs).");
-    } else if (responseLength === "huge") {
-      instructionParts.push(isRuMsg ? "Длина ответа: ОЧЕНЬ ПОДРОБНЫЙ (4+ абзаца)." : "Length: DETAILED (4 paragraphs).");
-    }
+    instructionParts.push(getResponseLengthDirective(state.apiSettings?.responseLength || "medium", isRuMsg));
 
     instructionParts.push(isRuMsg
       ? "Обязательно дописывай последнее предложение до конца!"
@@ -705,17 +779,6 @@ You are NOT continuing ${duoPartner.name}'s dialogue. Do NOT address ${duoPartne
   const stageBehavior = getStageBehavior(relStage);
 
   const responseLength = state.apiSettings?.responseLength || "medium";
-  const langNameMsg = isRuMsg ? "Russian" : "English";
-  let lengthInstruction = "";
-  if (responseLength === "short") {
-    lengthInstruction = `write a VERY SHORT response in ${langNameMsg} (strictly 1-3 sentences in total)`;
-  } else if (responseLength === "medium") {
-    lengthInstruction = `write a MEDIUM-length response in ${langNameMsg} (2-3 short paragraphs)`;
-  } else if (responseLength === "long") {
-    lengthInstruction = `write a LONG response in ${langNameMsg} (4-5 paragraphs)`;
-  } else if (responseLength === "huge") {
-    lengthInstruction = `write a VERY DETAILED response in ${langNameMsg} (6+ paragraphs)`;
-  }
 
   let conditionReminder = "";
   if (activeConditions.length > 0) {
@@ -803,6 +866,19 @@ The user passed the turn to you or paused.
 - Take autonomous action: describe your movements/thoughts, speak up, notice something in the environment, or advance the scene!`);
   }
 
+  // 2c. Anti "И.../And..." chain loop correction (fires only when the pattern is detected in recent replies)
+  if (andChainLoopDetected) {
+    instructionParts.push(isRuMsg
+      ? `🚨 КРИТИЧЕСКИЙ СБОЙ СТИЛЯ — ЦЕПОЧКИ «И»:
+В твоих последних ответах обнаружен однообразный паттерн: предложения подряд начинаются с «И», действия нанизаны через «и..., и..., и...» ("И я встал, и пошёл, и взял...").
+- НЕМЕДЛЕННО ПРЕКРАТИ: каждое новое предложение начинай со слова, отличного от начала предыдущих.
+- Разнообразь синтаксис: короткие фразы. Деепричастные обороты — они ускоряют темп. Сложноподчинённые конструкции, где уместно.`
+      : `🚨 CRITICAL STYLE FAILURE — "AND"-CHAINS:
+Your recent replies show a monotonous pattern: consecutive sentences opening with "And", actions strung together with "and..., and..., and...".
+- STOP immediately: begin every sentence with a different word than the previous ones.
+- Vary your syntax: short fragments. Participial phrases — they quicken the pace. Subordinate clauses where fitting.`);
+  }
+
   // 3. Dynamic States
   const moodPromptMap = {
     happy: "Happy, warm, friendly.",
@@ -834,9 +910,11 @@ You are ${character.name}. You are interacting ONLY with the User. The other cha
 Always remember past context from the conversation. Do not act surprised about things already discussed or agreed upon.`);
 
   // 6. Directives and Overrides
-  if (lengthInstruction) {
-    instructionParts.push(lengthInstruction.charAt(0).toUpperCase() + lengthInstruction.slice(1) + ".");
-  }
+  instructionParts.push(getResponseLengthDirective(responseLength, isRuMsg));
+  instructionParts.push(isRuMsg
+    ? "Обязательно дописывай последнее предложение до конца!"
+    : "Always fully complete your final sentence!"
+  );
   if (activeConditions.length > 0) {
     instructionParts.push(conditionReminder);
   }
@@ -1067,9 +1145,10 @@ Exclusive Control: The User (${userName}) controls their own character exclusive
 
   const gmSessionMemory = getSessionMemory(activeChatId);
   if (gmSessionMemory) {
-    const codexMd = formatMemoryToMarkdown(gmSessionMemory);
-    if (codexMd && codexMd.trim()) {
-      parts.push(`<session_memory_codex>\n${codexMd.trim()}\n</session_memory_codex>`);
+    const gmChatLength = (state.chats[activeChatId] || []).length;
+    const codexBlock = buildSessionCodexBlock(gmSessionMemory, gmChatLength, isRuGm);
+    if (codexBlock) {
+      parts.push(codexBlock);
     }
   }
 

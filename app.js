@@ -150,15 +150,21 @@ import {
   loadPinnedFacts,
   savePinnedFacts,
   getSessionMemory,
-  saveSessionMemory
+  saveSessionMemory,
+  saveSessionMemories,
+  saveSessionMemorySnapshots
 } from "./services/storage.js";
 import {
   extractStructuredMemoryFromLLM,
   createDefaultSessionMemory,
   smartMergeSessionMemory,
   getCodexProcessedCount,
+  recordSessionMemorySnapshot,
+  selectSessionMemoryRollback,
   CODEX_AUTO_UPDATE_EVERY,
-  CODEX_AUTO_UPDATE_MAX_MESSAGES
+  CODEX_AUTO_UPDATE_MAX_MESSAGES,
+  CODEX_CLEANUP_EVERY_UPDATES,
+  CODEX_CLEANUP_WINDOW
 } from "./services/sessionMemoryService.js";
 import {
   fetchModels,
@@ -239,7 +245,8 @@ import {
   ensureModelSelection,
   renderModelOptions,
   updateSettingsModelDetails,
-  updateModelProvidersUI
+  updateModelProvidersUI,
+  saveSettingsFromDialog
 } from "./js/config.js";
 
 if (typeof window !== "undefined") {
@@ -3634,6 +3641,7 @@ async function handleInlineRegenerate(msgIndex) {
   const truncated = chat.slice(0, msgIndex);
   state.chats = { ...state.chats, [activeChatId]: truncated };
   rollbackSummaryForChat(activeChatId, truncated.length);
+  rollbackSessionMemoryForChat(activeChatId, truncated.length);
   renderMessages();
 
   state.isStreaming = true;
@@ -4465,6 +4473,32 @@ function extractMemorySnapshotFromSummary(summaryText) {
 }
 
 const codexAutoUpdateInFlight = new Set();
+const codexFailNotified = new Set();
+
+function persistSessionMemorySnapshot(activeChatId, msgCount, memory) {
+  state.sessionMemorySnapshots = recordSessionMemorySnapshot(
+    state.sessionMemorySnapshots || {},
+    activeChatId,
+    msgCount,
+    memory
+  );
+  saveSessionMemorySnapshots(state.sessionMemorySnapshots);
+}
+
+function rollbackSessionMemoryForChat(chatId, targetCount) {
+  if (!chatId) return;
+  const { memory, snapshots } = selectSessionMemoryRollback(state.sessionMemorySnapshots || {}, chatId, targetCount);
+  if (memory) {
+    state.sessionMemories[chatId] = memory;
+    saveSessionMemory(chatId, memory);
+  } else {
+    // No pre-pollution snapshot: drop the memory entirely rather than keep facts from deleted messages
+    delete state.sessionMemories[chatId];
+    saveSessionMemories(state.sessionMemories);
+  }
+  state.sessionMemorySnapshots[chatId] = snapshots;
+  saveSessionMemorySnapshots(state.sessionMemorySnapshots);
+}
 
 async function maybeAutoUpdateSessionCodex(activeChatId) {
   if (CODEX_AUTO_UPDATE_EVERY <= 0) return;
@@ -4477,22 +4511,36 @@ async function maybeAutoUpdateSessionCodex(activeChatId) {
   if (processed > chat.length) processed = 0;
   if (chat.length - processed < CODEX_AUTO_UPDATE_EVERY) return;
 
-  const start = Math.max(processed, chat.length - CODEX_AUTO_UPDATE_MAX_MESSAGES);
+  // Periodic cleanup pass: widen the window so the extractor can refresh
+  // scalar state (location, physical/emotional states) and prune stale facts.
+  const updateOrdinal = Math.floor(chat.length / CODEX_AUTO_UPDATE_EVERY);
+  const isCleanup = updateOrdinal > 0 && updateOrdinal % CODEX_CLEANUP_EVERY_UPDATES === 0;
+  const start = isCleanup
+    ? Math.max(0, chat.length - CODEX_CLEANUP_WINDOW)
+    : Math.max(processed, chat.length - CODEX_AUTO_UPDATE_MAX_MESSAGES);
+
   codexAutoUpdateInFlight.add(activeChatId);
   try {
     const updated = await extractStructuredMemoryFromLLM(snapshot || createDefaultSessionMemory(), chat.slice(start), {
-      startIndex: start
+      startIndex: start,
+      cleanup: isCleanup
     });
     const latest = getSessionMemory(activeChatId);
     const editedMeanwhile = JSON.stringify(latest) !== JSON.stringify(snapshot);
     const toSave = editedMeanwhile ? smartMergeSessionMemory(latest, updated, chat.length) : updated;
     saveSessionMemory(activeChatId, toSave);
     state.sessionMemories[activeChatId] = toSave;
+    persistSessionMemorySnapshot(activeChatId, chat.length, toSave);
+    codexFailNotified.delete(activeChatId);
 
     const viewedId = state.sidebarTab === "gm" ? state.activeGmSceneId : state.activeCharacterId;
     if (getActiveChatId(viewedId) === activeChatId) renderSessionCodex(activeChatId);
   } catch (err) {
     console.warn("[SessionMemory] Auto update failed:", err);
+    if (!codexFailNotified.has(activeChatId)) {
+      codexFailNotified.add(activeChatId);
+      showStateNotification("⚠️ Не удалось обновить память сессии — проверьте модель или соединение. Память может отставать.");
+    }
   } finally {
     codexAutoUpdateInFlight.delete(activeChatId);
   }
@@ -5020,6 +5068,7 @@ function attachEvents() {
 
   if (dom.openSettingsBtn) {
     dom.openSettingsBtn.addEventListener("click", () => {
+      renderModelOptions();
       dom.settingsDialog.showModal();
       updateSettingsModelDetails();
     });
@@ -5107,10 +5156,15 @@ function attachEvents() {
     });
   }
 
-  if (dom.apiKeyInput) dom.apiKeyInput.addEventListener("change", async () => {
-    saveApiKey(dom.apiKeyInput.value);
-    await loadModels();
-  });
+  if (dom.apiKeyInput) {
+    dom.apiKeyInput.addEventListener("input", () => {
+      saveApiKey(dom.apiKeyInput.value);
+    });
+    dom.apiKeyInput.addEventListener("change", async () => {
+      saveApiKey(dom.apiKeyInput.value);
+      await loadModels();
+    });
+  }
   if (dom.refreshModelsBtn) dom.refreshModelsBtn.addEventListener("click", () => loadModels());
   
   if (dom.modelSelect) {
@@ -5138,6 +5192,7 @@ function attachEvents() {
 
   const openModelSettings = () => {
     if (dom.settingsDialog) {
+      renderModelOptions();
       if (!dom.settingsDialog.open) {
         dom.settingsDialog.showModal();
       }
@@ -5194,13 +5249,38 @@ function attachEvents() {
       }
     });
   }
-  if (dom.temperatureInput) dom.temperatureInput.addEventListener("change", syncApiSettingsFromInputs);
-  if (dom.repetitionPenaltyInput) dom.repetitionPenaltyInput.addEventListener("change", syncApiSettingsFromInputs);
-  if (dom.presencePenaltyInput) dom.presencePenaltyInput.addEventListener("change", syncApiSettingsFromInputs);
-  if (dom.frequencyPenaltyInput) dom.frequencyPenaltyInput.addEventListener("change", syncApiSettingsFromInputs);
-  if (dom.topPInput) dom.topPInput.addEventListener("change", syncApiSettingsFromInputs);
-  if (dom.minPInput) dom.minPInput.addEventListener("change", syncApiSettingsFromInputs);
-  if (dom.maxTokensInput) dom.maxTokensInput.addEventListener("change", syncApiSettingsFromInputs);
+  if (dom.userNameInput) {
+    dom.userNameInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.userNameInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.temperatureInput) {
+    dom.temperatureInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.temperatureInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.repetitionPenaltyInput) {
+    dom.repetitionPenaltyInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.repetitionPenaltyInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.presencePenaltyInput) {
+    dom.presencePenaltyInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.presencePenaltyInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.frequencyPenaltyInput) {
+    dom.frequencyPenaltyInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.frequencyPenaltyInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.topPInput) {
+    dom.topPInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.topPInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.minPInput) {
+    dom.minPInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.minPInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
+  if (dom.maxTokensInput) {
+    dom.maxTokensInput.addEventListener("input", syncApiSettingsFromInputs);
+    dom.maxTokensInput.addEventListener("change", syncApiSettingsFromInputs);
+  }
   if (dom.thinkingDisplaySelect) dom.thinkingDisplaySelect.addEventListener("change", syncApiSettingsFromInputs);
   if (dom.enableInnerMonologueInput) dom.enableInnerMonologueInput.addEventListener("change", syncApiSettingsFromInputs);
 
@@ -5238,7 +5318,8 @@ function attachEvents() {
         short: 400,
         medium: 1000,
         long: 2000,
-        huge: 4000
+        huge: 4000,
+        adaptive: 1600
       };
       if (dom.maxTokensInput) {
         dom.maxTokensInput.value = String(lengthTokenMap[length] || 1000);
@@ -5298,6 +5379,24 @@ function attachEvents() {
     dom.adminDialog.showModal();
     openAdminDialog();
   });
+
+  if (dom.saveSettingsBtn) {
+    dom.saveSettingsBtn.addEventListener("click", () => {
+      saveSettingsFromDialog({ showNotification: true, closeDialog: true });
+    });
+  }
+
+  if (dom.closeSettingsBtn) {
+    dom.closeSettingsBtn.addEventListener("click", () => {
+      saveSettingsFromDialog({ showNotification: false, closeDialog: true });
+    });
+  }
+
+  if (dom.settingsDialog) {
+    dom.settingsDialog.addEventListener("close", () => {
+      saveSettingsFromDialog({ showNotification: false, closeDialog: false });
+    });
+  }
 
   if (dom.previewPromptBtn) dom.previewPromptBtn.addEventListener("click", () => {
     dom.settingsDialog.close();
@@ -6315,14 +6414,10 @@ function handleDeleteMessage(msgIndex) {
   const newChat = chat.filter((_, i) => i !== msgIndex);
   state.chats = { ...state.chats, [activeChatId]: newChat };
   saveChats(state.chats);
-  
-  // Clear summary only if the entire chat was emptied
-  if (newChat.length === 0) {
-    delete state.chatSummaries[activeChatId];
-    delete state.chatSummarizedMessageCount[activeChatId];
-    saveChatSummaries(state.chatSummaries);
-    saveChatSummarizedMessageCount(state.chatSummarizedMessageCount);
-  }
+
+  // Roll both memory layers back to the last state consistent with the canon chat
+  rollbackSummaryForChat(activeChatId, newChat.length);
+  rollbackSessionMemoryForChat(activeChatId, newChat.length);
 
   renderMessages();
   updateStatsUI();
@@ -7176,6 +7271,7 @@ if (dom.btnAiUpdateCodex) {
       const updatedMem = await extractStructuredMemoryFromLLM(existingMem, chat);
       saveSessionMemory(activeChatId, updatedMem);
       state.sessionMemories[activeChatId] = updatedMem;
+      persistSessionMemorySnapshot(activeChatId, chat.length, updatedMem);
       renderSessionCodex(activeChatId);
       setStatus("Живой Кодекс Сессии успешно обновлен ИИ!");
       if (dom.summaryFeedbackMsg) {

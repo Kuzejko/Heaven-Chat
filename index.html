@@ -797,6 +797,7 @@
                   <option value="medium">Medium (2-3 абзаца)</option>
                   <option value="long">Long (4-5 абзацев)</option>
                   <option value="huge">Detailed/Huge (6+ абзацев)</option>
+                  <option value="adaptive">🎯 Adaptive (по ритму сцены)</option>
                 </select>
               </label>
 
@@ -868,8 +869,12 @@
         </div>
       </form>
 
-      <section class="dialog-footer-section" style="padding: 10px 20px; border-top: 1px solid var(--border); flex-shrink: 0;">
-        <button id="manageCharactersBtn" type="button" class="chat-header-btn" style="width: 100%; height: 38px; font-weight: 600;">👥 Manage Characters</button>
+      <section class="dialog-footer-section settings-dialog-footer">
+        <button id="manageCharactersBtn" type="button" class="chat-header-btn">👥 Manage Characters</button>
+        <div class="settings-footer-actions">
+          <button id="closeSettingsBtn" type="button" class="chat-header-btn">Закрыть</button>
+          <button id="saveSettingsBtn" type="button" class="btn-save-settings">💾 Сохранить настройки</button>
+        </div>
       </section>
     </dialog>
 

@@ -4772,6 +4772,49 @@ select option {
   padding: 16px;
 }
 
+.settings-dialog-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-surface, rgba(24, 24, 27, 0.6));
+}
+
+.settings-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-save-settings {
+  background: var(--accent-gradient, linear-gradient(135deg, #6366f1 0%, #4f46e5 100%));
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+.btn-save-settings:hover {
+  background: var(--accent-gradient-hover, linear-gradient(135deg, #4f46e5 0%, #4338ca 100%));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+}
+
+.btn-save-settings:active {
+  transform: translateY(0);
+}
+
 .admin-sidebar {
   display: flex;
   flex-direction: column;

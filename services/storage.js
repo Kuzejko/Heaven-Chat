@@ -347,11 +347,41 @@ export function loadApiSettings() {
     ...defaults,
     ...stored
   };
-  if (merged.temperature === 0 || merged.temperature > 0.85) merged.temperature = 0.68;
-  if (merged.repetitionPenalty === 0 || merged.repetitionPenalty > 1.12) merged.repetitionPenalty = 1.05;
-  if (merged.presencePenalty > 0.5) merged.presencePenalty = 0.15;
-  if (merged.frequencyPenalty > 0.5) merged.frequencyPenalty = 0.15;
-  if (merged.topP === 0) merged.topP = 0.95;
+  if (typeof merged.temperature === "number" && !isNaN(merged.temperature)) {
+    merged.temperature = Math.min(2, Math.max(0, merged.temperature));
+  } else {
+    merged.temperature = 0.68;
+  }
+  if (typeof merged.repetitionPenalty === "number" && !isNaN(merged.repetitionPenalty)) {
+    merged.repetitionPenalty = Math.min(2, Math.max(0, merged.repetitionPenalty));
+  } else {
+    merged.repetitionPenalty = 1.05;
+  }
+  if (typeof merged.presencePenalty === "number" && !isNaN(merged.presencePenalty)) {
+    merged.presencePenalty = Math.min(2, Math.max(-2, merged.presencePenalty));
+  } else {
+    merged.presencePenalty = 0.15;
+  }
+  if (typeof merged.frequencyPenalty === "number" && !isNaN(merged.frequencyPenalty)) {
+    merged.frequencyPenalty = Math.min(2, Math.max(-2, merged.frequencyPenalty));
+  } else {
+    merged.frequencyPenalty = 0.15;
+  }
+  if (typeof merged.topP === "number" && !isNaN(merged.topP)) {
+    merged.topP = Math.min(1, Math.max(0, merged.topP));
+  } else {
+    merged.topP = 0.95;
+  }
+  if (typeof merged.minP === "number" && !isNaN(merged.minP)) {
+    merged.minP = Math.min(1, Math.max(0, merged.minP));
+  } else {
+    merged.minP = 0.05;
+  }
+  if (typeof merged.maxTokens === "number" && !isNaN(merged.maxTokens)) {
+    merged.maxTokens = Math.max(1, Math.floor(merged.maxTokens));
+  } else {
+    merged.maxTokens = 800;
+  }
   return merged;
 }
 
@@ -803,6 +833,17 @@ export function saveSessionMemory(chatId, memory) {
   const all = loadSessionMemories();
   all[chatId] = memory;
   saveSessionMemories(all);
+}
+
+const SESSION_MEMORY_SNAPSHOTS_KEY = "openrouter_session_memory_snapshots_v1";
+
+export function loadSessionMemorySnapshots() {
+  const cached = safeJsonParse(localStorage.getItem(SESSION_MEMORY_SNAPSHOTS_KEY), {});
+  return cached && typeof cached === "object" ? cached : {};
+}
+
+export function saveSessionMemorySnapshots(snapshots) {
+  safeLocalStorageSet(SESSION_MEMORY_SNAPSHOTS_KEY, JSON.stringify(snapshots));
 }
 
 export function exportAllStorageData() {

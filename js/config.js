@@ -1,5 +1,5 @@
 import { state } from "./state.js";
-import { dom, renderPersonaList, renderGmScenes } from "./ui.js";
+import { dom, renderPersonaList, renderGmScenes, showStateNotification } from "./ui.js";
 import { defaultCharacters } from "../data/defaultCharacters.js";
 import { fetchModelEndpoints } from "../services/openrouter.js";
 import {
@@ -329,6 +329,7 @@ export function normalizeApiSettings(raw) {
     chatLanguage: String(raw?.chatLanguage || "ru").trim(),
     worldGenre: String(raw?.worldGenre || "fantasy").trim(),
     summaryMode: String(raw?.summaryMode || "every_turn").trim(),
+    initiativeLevel: String(raw?.initiativeLevel || "balanced").trim(),
     maxHistoryMessages: parseNum(raw?.maxHistoryMessages, 20),
     providerSort: String(raw?.providerSort || "price").trim(),
     specificProvider: String(raw?.specificProvider || "").trim(),
@@ -541,6 +542,13 @@ export function syncApiSettingsFromInputs() {
   if (dom.specificProviderInput) dom.specificProviderInput.value = state.apiSettings.specificProvider || "";
   if (dom.nordrouterApiKeyInput && dom.nordrouterApiKeyInput.value !== undefined) {
     saveNordrouterApiKey(dom.nordrouterApiKeyInput.value);
+  }
+  if (dom.apiKeyInput && dom.apiKeyInput.value !== undefined) {
+    saveApiKey(dom.apiKeyInput.value);
+  }
+  if (dom.globalSystemPromptInput && dom.globalSystemPromptInput.value !== undefined) {
+    state.globalSystemPrompt = dom.globalSystemPromptInput.value;
+    saveGlobalSystemPrompt(state.globalSystemPrompt);
   }
   saveApiSettings(state.apiSettings);
   updateActiveModelBadge();
@@ -777,11 +785,45 @@ export function renderModelOptions() {
   if (dom.maxHistoryMessagesSelect) dom.maxHistoryMessagesSelect.value = String(state.apiSettings.maxHistoryMessages ?? 20);
   if (dom.providerSortSelect) dom.providerSortSelect.value = state.apiSettings.providerSort || "price";
   if (dom.specificProviderSelect) dom.specificProviderSelect.value = state.apiSettings.specificProvider || "";
+  if (dom.apiProviderSelect) dom.apiProviderSelect.value = state.apiSettings.apiProvider || "openrouter";
+  if (dom.apiKeyInput) dom.apiKeyInput.value = loadApiKey() || "";
+  if (dom.nordrouterApiKeyInput) {
+    dom.nordrouterApiKeyInput.value = state.apiSettings.nordrouterApiKey || loadNordrouterApiKey() || "";
+  }
+  if (dom.nordrouterBaseUrlInput) {
+    dom.nordrouterBaseUrlInput.value = state.apiSettings.nordrouterBaseUrl || "https://nordrouter.com/v1";
+  }
+  if (dom.localBaseUrlInput) {
+    dom.localBaseUrlInput.value = state.apiSettings.localBaseUrl || "http://localhost:1234/v1";
+  }
+  if (dom.localApiKeyInput) {
+    dom.localApiKeyInput.value = state.apiSettings.localApiKey || "lm-studio";
+  }
+  if (dom.globalSystemPromptInput) {
+    dom.globalSystemPromptInput.value = state.globalSystemPrompt || "";
+  }
   if (dom.specificProviderInput) dom.specificProviderInput.value = state.apiSettings.specificProvider || "";
   if (dom.allowFallbacksInput) dom.allowFallbacksInput.checked = state.apiSettings.allowFallbacks !== false;
   updateProviderUI();
   updateActiveModelBadge();
   updateSettingsModelDetails();
+}
+
+let isSavingSettings = false;
+export function saveSettingsFromDialog(options = { showNotification: true, closeDialog: true }) {
+  if (isSavingSettings) return;
+  isSavingSettings = true;
+  try {
+    syncApiSettingsFromInputs();
+    if (options.showNotification && typeof showStateNotification === "function") {
+      showStateNotification("Настройки сохранены! ✅");
+    }
+    if (options.closeDialog && dom.settingsDialog && dom.settingsDialog.open) {
+      dom.settingsDialog.close();
+    }
+  } finally {
+    isSavingSettings = false;
+  }
 }
 
 export function updateSettingsModelDetails() {
