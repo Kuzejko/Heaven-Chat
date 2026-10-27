@@ -59,5 +59,6 @@ backup_*/
 .idea/
 .cursor/
 .agents/
+.superpowers/
 .DS_Store
 Thumbs.db

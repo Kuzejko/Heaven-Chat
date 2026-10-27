@@ -9,6 +9,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./styles.css?v=4.8" />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('openrouter_app_theme_v1');
+          if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body>
     <div class="app">
@@ -114,6 +122,10 @@
               <div class="chat-char-titles">
                 <h2 id="activeCharacterName">No character</h2>
               </div>
+              <div id="headerStateBadge" class="header-state-badge" style="display: none;" title="Текущее состояние персонажа и сцены">
+                <span class="header-state-badge-icon">📍</span>
+                <span id="headerStateBadgeText" class="header-state-badge-text"></span>
+              </div>
               <button id="editCharacterBtn" class="chat-header-btn btn-icon-only" title="Edit Character"><svg class="feather" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg></button>
               <button id="chatHeaderEnhanceBtn" class="chat-header-btn btn-icon-only" title="✨ Улучшить персонажа через ИИ (с режимом 18+)"><svg class="feather" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
               <button id="adoptActiveCharAsPersonaBtn" class="chat-header-btn btn-icon-only" title="🎭 Играть за этого персонажа (Взять как свою персону)"><svg class="feather" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
@@ -130,6 +142,43 @@
             <div id="chatSelectorContainer" class="chat-selector-container">
               <select id="chatSelector" class="chat-selector" title="Switch Chat"></select>
               <button id="newChatBtn" class="chat-header-btn btn-icon-only" title="New Chat"><svg class="feather" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></button>
+
+              <!-- Reader Comfort Settings (Aa) -->
+              <div class="reader-settings-wrap" id="readerSettingsWrap">
+                <button id="readerSettingsBtn" class="chat-header-btn btn-icon-only" type="button" title="Настройки комфорта чтения (Aa)">
+                  <span class="reader-btn-text">Aa</span>
+                </button>
+                <div id="readerSettingsPopover" class="reader-settings-popover" style="display: none;">
+                  <div class="reader-popover-header">
+                    <span class="reader-popover-title">Комфорт чтения</span>
+                    <button type="button" id="closeReaderSettingsBtn" class="reader-popover-close" title="Закрыть">✕</button>
+                  </div>
+                  <div class="reader-popover-row">
+                    <span class="reader-popover-label">Размер текста</span>
+                    <div class="reader-font-ctrls">
+                      <button type="button" id="readerFontDecBtn" class="reader-pill-btn" title="Уменьшить">-</button>
+                      <span id="readerFontSizeVal" class="reader-val-badge">15.5px</span>
+                      <button type="button" id="readerFontIncBtn" class="reader-pill-btn" title="Увеличить">+</button>
+                    </div>
+                  </div>
+                  <div class="reader-popover-row">
+                    <span class="reader-popover-label">Интервал строк</span>
+                    <div class="reader-line-ctrls">
+                      <button type="button" class="reader-line-btn" data-lh="1.5">1.5</button>
+                      <button type="button" class="reader-line-btn active" data-lh="1.74">1.7</button>
+                      <button type="button" class="reader-line-btn" data-lh="1.9">1.9</button>
+                    </div>
+                  </div>
+                  <div class="reader-popover-row">
+                    <span class="reader-popover-label">Ширина чтения</span>
+                    <div class="reader-width-ctrls">
+                      <button type="button" class="reader-width-btn" data-width="740px">Узкая</button>
+                      <button type="button" class="reader-width-btn active" data-width="860px">Стандарт</button>
+                      <button type="button" class="reader-width-btn" data-width="100%">Вся</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <!-- Chat More Actions Dropdown Menu -->
               <div class="chat-actions-menu-wrap" id="chatActionsMenuWrap">
@@ -219,6 +268,14 @@
 
         <section id="messages" class="messages"></section>
 
+        <!-- Floating Scroll to Bottom Button -->
+        <button id="chatScrollBottomBtn" class="chat-scroll-bottom-btn" type="button" title="Прокрутить к новым сообщениям" style="display: none;">
+          <svg class="feather" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+          <span class="chat-scroll-bottom-badge" id="chatScrollBottomBadge" style="display: none;"></span>
+        </button>
+
         <div id="stateNotifications" class="state-notifications"></div>
 
         <form id="chatForm" class="composer" onsubmit="event.preventDefault(); return false;">
@@ -246,18 +303,19 @@
               </button>
               <input type="file" id="imageFileInput" accept="image/png, image/jpeg, image/webp, image/gif" multiple style="display: none;" />
               <button id="emojiPickerBtn" type="button" class="composer-icon-btn" title="Выбрать эмодзи">
-                <span style="font-size: 16px;">😃</span>
+                <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line></svg>
               </button>
               <button id="timeSkipBtn" type="button" class="composer-icon-btn" title="Перемотка времени (Time Skip)">
                 <svg class="feather" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
               </button>
               <button id="thinkingToggleBtn" type="button" class="composer-icon-btn thinking-toggle-btn active" title="Размышления модели: ВКЛ (нажмите для отключения)">
-                <span class="thinking-toggle-icon">🧠</span>
+                <svg class="feather thinking-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-4.04z"></path><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-4.04z"></path></svg>
               </button>
             </div>
             <div class="composer-actions">
-              <button id="characterTurnBtn" type="button" class="btn-character-turn" title="Ход персонажа (передать ход или продолжить сцену без вашего текста)" style="display: inline-flex; align-items: center; gap: 5px; padding: 0 12px; height: 38px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: var(--text-primary); transition: all 0.2s ease;">
-                <span>⚡ Ход героя</span>
+              <button id="characterTurnBtn" type="button" class="btn-character-turn" title="Ход персонажа (передать ход или продолжить сцену без вашего текста)" style="display: inline-flex; align-items: center; gap: 6px; padding: 0 13px; height: 38px; border-radius: 9px; font-size: 13px; font-weight: 550; cursor: pointer; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.05); color: var(--text-primary); transition: all 0.2s ease;">
+                <svg class="feather" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span>Ход героя</span>
               </button>
               <button id="sendBtn" type="button" class="btn-send-main"><svg class="feather" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg> <span>Send</span></button>
             </div>
@@ -505,6 +563,9 @@
         </button>
         <button type="button" class="settings-tab-btn" data-tab="tab-setting" id="tabBtnSetting" role="tab" aria-selected="false">
           <span>🌍</span> Сеттинг & Память
+        </button>
+        <button type="button" class="settings-tab-btn" data-tab="tab-appearance" id="tabBtnAppearance" role="tab" aria-selected="false">
+          <span>🎨</span> Темы & Вид
         </button>
       </nav>
 
@@ -845,24 +906,123 @@
             <button id="previewPromptBtn" type="button" class="btn-preview-prompt">🔍 Preview Full System Prompt Context</button>
           </div>
 
-          <!-- Внешний вид и чтение диалогов -->
+        </div>
+
+        <!-- Вкладка 4: Темы & Вид -->
+        <div id="settingsTabAppearance" class="settings-tab-panel" role="tabpanel" style="display: none;">
+          <!-- Цветовая тема оформления -->
           <div class="settings-card">
-            <h4 class="settings-card-title">📖 Внешний вид и чтение диалогов</h4>
-            <div class="dialog-form-row-align" style="margin-top: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 13px;">Размер шрифта текста:</span>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <button id="settingsFontSizeDecBtn" type="button" class="btn-icon-only" style="width: 28px; height: 28px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;">A-</button>
-                <span id="settingsFontSizeDisplay" style="font-size: 13px; min-width: 36px; text-align: center; color: var(--accent); font-weight: 600;">15.5</span>
-                <button id="settingsFontSizeIncBtn" type="button" class="btn-icon-only" style="width: 28px; height: 28px; font-weight: bold; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;">A+</button>
+            <h4 class="settings-card-title">🎨 Цветовая тема оформления</h4>
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 10px;">
+              Выберите визуальную палитру приложения по своему вкусу и настроению.
+            </p>
+            <div class="theme-card-grid" id="themeCardGrid">
+              <!-- 1. Emerald Night -->
+              <div class="theme-card active" data-app-theme="emerald" title="Изумруд и глубокий обсидиан">
+                <div class="theme-card-header">
+                  <div class="theme-dots">
+                    <span class="theme-dot" style="background: #2dd4bf;"></span>
+                    <span class="theme-dot" style="background: #14b8a6;"></span>
+                    <span class="theme-bar" style="background: #0d9488;"></span>
+                  </div>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-card-body">
+                  <div class="theme-card-title">Emerald Night</div>
+                  <div class="theme-card-desc">Изумруд & Обсидиан</div>
+                </div>
+              </div>
+
+              <!-- 2. Cyberpunk Neon -->
+              <div class="theme-card" data-app-theme="cyberpunk" title="Неоновый аметист и киберпанк">
+                <div class="theme-card-header">
+                  <div class="theme-dots">
+                    <span class="theme-dot" style="background: #c084fc;"></span>
+                    <span class="theme-dot" style="background: #f43f5e;"></span>
+                    <span class="theme-bar" style="background: #a855f7;"></span>
+                  </div>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-card-body">
+                  <div class="theme-card-title">Cyberpunk Neon</div>
+                  <div class="theme-card-desc">Неоновый аметист</div>
+                </div>
+              </div>
+
+              <!-- 3. Deep Sapphire -->
+              <div class="theme-card" data-app-theme="sapphire" title="Полуночный океан и сапфир">
+                <div class="theme-card-header">
+                  <div class="theme-dots">
+                    <span class="theme-dot" style="background: #3b82f6;"></span>
+                    <span class="theme-dot" style="background: #06b6d4;"></span>
+                    <span class="theme-bar" style="background: #2563eb;"></span>
+                  </div>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-card-body">
+                  <div class="theme-card-title">Deep Sapphire</div>
+                  <div class="theme-card-desc">Полуночный океан</div>
+                </div>
+              </div>
+
+              <!-- 4. Sunset Amber -->
+              <div class="theme-card" data-app-theme="amber" title="Тёплый янтарь и кофе">
+                <div class="theme-card-header">
+                  <div class="theme-dots">
+                    <span class="theme-dot" style="background: #f59e0b;"></span>
+                    <span class="theme-dot" style="background: #ea580c;"></span>
+                    <span class="theme-bar" style="background: #d97706;"></span>
+                  </div>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-card-body">
+                  <div class="theme-card-title">Sunset Amber</div>
+                  <div class="theme-card-desc">Тёплый янтарь & кофе</div>
+                </div>
+              </div>
+
+              <!-- 5. OLED Pure Dark -->
+              <div class="theme-card" data-app-theme="oled" title="Абсолютно чёрный для OLED">
+                <div class="theme-card-header">
+                  <div class="theme-dots">
+                    <span class="theme-dot" style="background: #ffffff;"></span>
+                    <span class="theme-dot" style="background: #a1a1aa;"></span>
+                    <span class="theme-bar" style="background: #52525b;"></span>
+                  </div>
+                  <span class="theme-check">✓</span>
+                </div>
+                <div class="theme-card-body">
+                  <div class="theme-card-title">OLED Pure Dark</div>
+                  <div class="theme-card-desc">Абсолютный чёрный</div>
+                </div>
               </div>
             </div>
-            <div class="dialog-form-row-align" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 13px;">Цвет выделения реплик:</span>
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <button type="button" class="dialogue-color-dot" data-theme="white" style="width: 22px; height: 22px; border-radius: 50%; background: #ffffff; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Чистый белый"></button>
-                <button type="button" class="dialogue-color-dot" data-theme="silver" style="width: 22px; height: 22px; border-radius: 50%; background: #e4e4e7; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Светло-серебристый"></button>
-                <button type="button" class="dialogue-color-dot" data-theme="zinc" style="width: 22px; height: 22px; border-radius: 50%; background: #a1a1aa; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Нейтральный цинк"></button>
-                <button type="button" class="dialogue-color-dot" data-theme="ghost" style="width: 22px; height: 22px; border-radius: 50%; background: #71717a; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Пепельный"></button>
+          </div>
+
+          <!-- Типографика и чтение диалогов -->
+          <div class="settings-card">
+            <h4 class="settings-card-title">📖 Типографика и чтение диалогов</h4>
+            <p style="font-size: 12px; color: var(--text-secondary); margin: 4px 0 12px;">
+              Настройки читаемости реплик и комфорта для глаз при долгом чтении.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
+              <div>
+                <span class="font-medium" style="font-size: 13px; display: block; margin-bottom: 8px;">Размер шрифта текста:</span>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <button id="settingsFontSizeDecBtn" type="button" class="btn-icon-only" style="width: 32px; height: 32px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;" title="Уменьшить шрифт">A-</button>
+                  <span id="settingsFontSizeDisplay" style="font-size: 14px; min-width: 40px; text-align: center; color: var(--accent); font-weight: 700;">15.5</span>
+                  <button id="settingsFontSizeIncBtn" type="button" class="btn-icon-only" style="width: 32px; height: 32px; font-weight: bold; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06); color: var(--text-primary); cursor: pointer;" title="Увеличить шрифт">A+</button>
+                </div>
+              </div>
+              <div>
+                <span class="font-medium" style="font-size: 13px; display: block; margin-bottom: 8px;">Цвет прямой речи («...» / "..."):</span>
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="dialogue-color-dot" data-theme="white" style="width: 24px; height: 24px; border-radius: 50%; background: #ffffff; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Чистый белый"></button>
+                  <button type="button" class="dialogue-color-dot" data-theme="silver" style="width: 24px; height: 24px; border-radius: 50%; background: #e4e4e7; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Светло-серебристый"></button>
+                  <button type="button" class="dialogue-color-dot" data-theme="gold" style="width: 24px; height: 24px; border-radius: 50%; background: #fde047; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Тёплый золотистый"></button>
+                  <button type="button" class="dialogue-color-dot" data-theme="cyan" style="width: 24px; height: 24px; border-radius: 50%; background: #38bdf8; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Небесно-голубой"></button>
+                  <button type="button" class="dialogue-color-dot" data-theme="emerald" style="width: 24px; height: 24px; border-radius: 50%; background: #34d399; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease;" title="Мягкий изумруд"></button>
+                </div>
               </div>
             </div>
           </div>

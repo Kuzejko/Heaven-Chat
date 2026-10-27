@@ -381,6 +381,17 @@ export const dom = {
   fontSizeDecBtn: document.getElementById("fontSizeDecBtn"),
   fontSizeIncBtn: document.getElementById("fontSizeIncBtn"),
   fontSizeDisplay: document.getElementById("fontSizeDisplay"),
+  // Reader Comfort & Header State
+  headerStateBadge: document.getElementById("headerStateBadge"),
+  headerStateBadgeText: document.getElementById("headerStateBadgeText"),
+  readerSettingsBtn: document.getElementById("readerSettingsBtn"),
+  readerSettingsPopover: document.getElementById("readerSettingsPopover"),
+  closeReaderSettingsBtn: document.getElementById("closeReaderSettingsBtn"),
+  readerFontDecBtn: document.getElementById("readerFontDecBtn"),
+  readerFontIncBtn: document.getElementById("readerFontIncBtn"),
+  readerFontSizeVal: document.getElementById("readerFontSizeVal"),
+  chatScrollBottomBtn: document.getElementById("chatScrollBottomBtn"),
+  chatScrollBottomBadge: document.getElementById("chatScrollBottomBadge"),
   // Character Studio 2.0 elements
   studioConceptInput: document.getElementById("studioConceptInput"),
   studioRandomBtn: document.getElementById("studioRandomBtn"),
@@ -594,6 +605,10 @@ export function onImproveLoreContent(cb) { improveLoreContentCallback = cb; } //
 export function onRefineCharacter(cb) { refineCharacterCallback = cb; } // Register character refine callback
 export function onAddStatusCondition(cb) { addStatusConditionCallback = cb; }
 export function onRemoveStatusCondition(cb) { removeStatusConditionCallback = cb; }
+let swipeCallback = null;
+let continueCallback = null;
+export function onSwipeMessage(cb) { swipeCallback = cb; }
+export function onContinueMessage(cb) { continueCallback = cb; }
 
 // --- Inline Message Editing ---
 
@@ -897,6 +912,9 @@ export function formatMessageContent(rawText) {
     // 1. Mark markdown asterisks *action* as <em class='action'>*action*</em>
     let processed = clean.replace(/<em>([\s\S]*?)<\/em>/gi, "<em class='action'>$1</em>");
 
+    // 1.5. Mark thoughts ~thought~ as <span class='thought'>$1</span> (without capturing conversational tildes like 'hello~')
+    processed = processed.replace(/(?<![~a-zA-Z0-9а-яА-ЯёЁ])~([^~\n\r<>]+?)~(?!~)/g, "<span class='thought'>$1</span>");
+
     // 2. Wrap quoted dialogue: «...», “...”, "...", &quot;...&quot;
     processed = processed
       .replace(/«([^»\n]+?)»/g, "<span class='dialogue'>«$1»</span>")
@@ -1079,9 +1097,52 @@ export function parseThoughtAndContent(text) {
   return { thought: thought.trim(), content: content.trim() };
 }
 
+export function updateHeaderStateBadge() {
+  if (!dom.headerStateBadge || !dom.headerStateBadgeText) return;
+  const character = getActiveCharacter();
+  if (!character) {
+    dom.headerStateBadge.style.display = "none";
+    dom.headerStateBadge.removeAttribute("data-active");
+    return;
+  }
+  const states = getChatStates(character.id) || {};
+  const entries = Object.entries(states).filter(([k, v]) => {
+    if (["eventLog", "statusConditions", "lastUpdated"].includes(k)) return false;
+    if (v === null || v === undefined) return false;
+    const str = String(typeof v === "object" ? "" : v).trim();
+    return str.length > 0 && str !== "Не определено" && str !== "undefined" && str !== "[object Object]";
+  });
+  if (entries.length === 0) {
+    dom.headerStateBadge.style.display = "none";
+    dom.headerStateBadge.removeAttribute("data-active");
+    return;
+  }
+  // Try to find location or mood, or take the first state entry
+  const locEntry = entries.find(([k]) => /локация|место|location|place/i.test(k));
+  const moodEntry = entries.find(([k]) => /настроение|mood/i.test(k));
+  const chosen = locEntry || moodEntry || entries[0];
+  const [key, val] = chosen;
+  const valStr = String(val).trim();
+  if (!valStr || valStr === "Не определено") {
+    dom.headerStateBadge.style.display = "none";
+    dom.headerStateBadge.removeAttribute("data-active");
+    return;
+  }
+
+  const iconEl = dom.headerStateBadge.querySelector(".header-state-badge-icon");
+  if (iconEl) {
+    iconEl.textContent = locEntry ? "📍" : (moodEntry ? "💭" : "✨");
+  }
+  dom.headerStateBadgeText.textContent = valStr;
+  dom.headerStateBadge.title = `Состояние: ${key} = ${valStr} (нажмите для подробностей)`;
+  dom.headerStateBadge.style.display = "inline-flex";
+  dom.headerStateBadge.setAttribute("data-active", "true");
+}
+
 // --- Render Core Functions ---
 
 export function renderProgressBar() {
+  updateHeaderStateBadge();
   const character = getActiveCharacter();
   if (!character) {
     if (dom.customStatesPanel) dom.customStatesPanel.innerHTML = "";
@@ -1741,7 +1802,8 @@ export function switchSettingsTab(tabName) {
   const panes = {
     "tab-api": document.getElementById("settingsTabApi"),
     "tab-generation": document.getElementById("settingsTabGen"),
-    "tab-setting": document.getElementById("settingsTabSetting")
+    "tab-setting": document.getElementById("settingsTabSetting"),
+    "tab-appearance": document.getElementById("settingsTabAppearance")
   };
 
   Object.entries(panes).forEach(([key, pane]) => {
@@ -1780,7 +1842,7 @@ export function initSettingsTabs() {
   let savedTab = "tab-api";
   try {
     const s = localStorage.getItem("active_settings_tab");
-    if (s && (s === "tab-api" || s === "tab-generation" || s === "tab-setting")) {
+    if (s && (s === "tab-api" || s === "tab-generation" || s === "tab-setting" || s === "tab-appearance")) {
       savedTab = s;
     }
   } catch (_) {}
@@ -2386,6 +2448,7 @@ export function renderMessages() {
 
   const activeChatId = getActiveChatId(activeId);
   renderDirectivesBar();
+  updateHeaderStateBadge();
 
   // Render GM Scene NPCs in Right Sidebar if GM scene
   const gmNpcSection = document.getElementById("gmSceneNpcSection");
@@ -2618,7 +2681,7 @@ export function renderMessages() {
     }
     
     const dialogueEl = document.createElement("div");
-    dialogueEl.className = "message-dialogue";
+    dialogueEl.className = "message-dialogue dialogue-text";
     const isLastAndStreaming = (i === total - 1) && state.isStreaming;
     if (message.isGmMessage && isGm) {
       const gmBlocks = parseGmMessage(parsed.content);
@@ -2795,6 +2858,51 @@ export function renderMessages() {
     actionsBar.appendChild(editBtn);
 
     if (message.role === "assistant") {
+      if (i === total - 1 || (message.swipes && message.swipes.length > 1)) {
+        article.classList.add("has-swipes");
+        const swipes = message.swipes && Array.isArray(message.swipes) && message.swipes.length > 0
+          ? message.swipes
+          : [message.content];
+        const currentIndex = message.swipeIndex !== undefined ? message.swipeIndex : (swipes.length - 1);
+
+        const swipeBar = document.createElement("div");
+        swipeBar.className = "message-swipe-bar";
+
+        const prevBtn = document.createElement("button");
+        prevBtn.type = "button";
+        prevBtn.className = "swipe-prev";
+        prevBtn.title = "Предыдущий вариант (Alt+Left)";
+        prevBtn.textContent = "‹";
+        prevBtn.disabled = currentIndex <= 0;
+        prevBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (swipeCallback) swipeCallback(actualIndex, currentIndex - 1);
+        });
+        swipeBar.appendChild(prevBtn);
+
+        const counter = document.createElement("span");
+        counter.className = "swipe-counter";
+        counter.textContent = `${currentIndex + 1}/${swipes.length}`;
+        swipeBar.appendChild(counter);
+
+        const nextBtn = document.createElement("button");
+        nextBtn.type = "button";
+        nextBtn.className = "swipe-next";
+        nextBtn.title = currentIndex < swipes.length - 1 ? "Следующий вариант (Alt+Right)" : "Сгенерировать новый вариант";
+        nextBtn.textContent = "›";
+        nextBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (currentIndex < swipes.length - 1) {
+            if (swipeCallback) swipeCallback(actualIndex, currentIndex + 1);
+          } else {
+            if (regenerateCallback) regenerateCallback(actualIndex);
+          }
+        });
+        swipeBar.appendChild(nextBtn);
+
+        actionsBar.appendChild(swipeBar);
+      }
+
       const regenBtn = document.createElement("button");
       regenBtn.type = "button";
       regenBtn.className = "action-btn";
@@ -2808,31 +2916,20 @@ export function renderMessages() {
       });
       actionsBar.appendChild(regenBtn);
 
-      const likeBtn = document.createElement("button");
-      likeBtn.type = "button";
-      likeBtn.className = `action-btn${message.reaction === "like" ? " active" : ""}`;
-      likeBtn.title = "Like";
-      likeBtn.dataset.label = "Нравится";
-      likeBtn.dataset.icon = "👍";
-      likeBtn.innerHTML = '<svg class="feather" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>';
-      likeBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (reactionCallback) reactionCallback(actualIndex, message.reaction === "like" ? null : "like");
-      });
-      actionsBar.appendChild(likeBtn);
-
-      const dislikeBtn = document.createElement("button");
-      dislikeBtn.type = "button";
-      dislikeBtn.className = `action-btn${message.reaction === "dislike" ? " active" : ""}`;
-      dislikeBtn.title = "Dislike";
-      dislikeBtn.dataset.label = "Не нравится";
-      dislikeBtn.dataset.icon = "👎";
-      dislikeBtn.innerHTML = '<svg class="feather" viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h3a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-3"></path></svg>';
-      dislikeBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (reactionCallback) reactionCallback(actualIndex, message.reaction === "dislike" ? null : "dislike");
-      });
-      actionsBar.appendChild(dislikeBtn);
+      if (i === total - 1) {
+        const continueBtn = document.createElement("button");
+        continueBtn.type = "button";
+        continueBtn.className = "action-btn continue-btn";
+        continueBtn.title = "Продолжить генерацию ответа (Continue)";
+        continueBtn.dataset.label = "Продолжить";
+        continueBtn.dataset.icon = "▶";
+        continueBtn.innerHTML = '<svg class="feather" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>';
+        continueBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (continueCallback) continueCallback(actualIndex);
+        });
+        actionsBar.appendChild(continueBtn);
+      }
     }
 
     const translateBtn = document.createElement("button");
@@ -4345,21 +4442,7 @@ function showContextMenu(msgIndex, x, y) {
     } 
   });
 
-  if (msg.role === "assistant") {
-    const currentReaction = msg.reaction || null;
-    actions.push({
-      label: currentReaction === "like" ? "Unlike" : "Like",
-      action: () => {
-        if (reactionCallback) reactionCallback(msgIndex, currentReaction === "like" ? null : "like");
-      }
-    });
-    actions.push({
-      label: currentReaction === "dislike" ? "Undislike" : "Dislike",
-      action: () => {
-        if (reactionCallback) reactionCallback(msgIndex, currentReaction === "dislike" ? null : "dislike");
-      }
-    });
-  }
+
 
   actions.push({ 
     label: "Delete", 

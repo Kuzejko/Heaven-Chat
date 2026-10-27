@@ -67,7 +67,7 @@ async function capture() {
 
     // Switch to Generation tab
     await page.evaluate(() => {
-      const tab = document.querySelector('[data-settings-tab="generation"]');
+      const tab = document.querySelector('#tabBtnGeneration') || document.querySelector('[data-tab="tab-generation"]');
       if (tab) tab.click();
     });
     await page.waitForTimeout(300);
@@ -76,16 +76,16 @@ async function capture() {
 
     // Switch to Appearance tab
     await page.evaluate(() => {
-      const tab = document.querySelector('[data-settings-tab="appearance"]');
+      const tab = document.querySelector('#tabBtnAppearance') || document.querySelector('[data-tab="tab-appearance"]');
       if (tab) tab.click();
     });
     await page.waitForTimeout(300);
     await page.screenshot({ path: path.join(outDir, '02_settings_appearance.png') });
     console.log('Saved 02_settings_appearance.png');
 
-    // Switch to Data tab
+    // Switch to Setting tab
     await page.evaluate(() => {
-      const tab = document.querySelector('[data-settings-tab="data"]');
+      const tab = document.querySelector('#tabBtnSetting') || document.querySelector('[data-tab="tab-setting"]');
       if (tab) tab.click();
     });
     await page.waitForTimeout(300);

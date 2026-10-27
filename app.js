@@ -47,6 +47,8 @@ import {
   onAddStatusCondition,
   onRemoveStatusCondition,
   onEditMessage,
+  onSwipeMessage,
+  onContinueMessage,
   onReplyMessage,
   onDeleteMessage,
   onReactionChange,
@@ -110,6 +112,8 @@ import {
   saveLastCost,
   loadChatFontSize,
   saveChatFontSize,
+  loadReaderSettings,
+  saveReaderSettings,
   loadDialogueColorTheme,
   saveDialogueColorTheme,
   saveChatSummaries,
@@ -393,7 +397,7 @@ Output ONLY the JSON block. Do not include markdown codeblocks (such as \`\`\`),
   }
 }
 
-async function triggerAutoFirstMessage(characterId) {
+async function triggerAutoFirstMessage(characterId, existingSwipes = null) {
   if (state.isStreaming) return;
   const apiConfig = getEffectiveApiConfig(state.apiSettings, dom.apiKeyInput?.value);
   if (apiConfig.baseUrl === null && !apiConfig.apiKey) return;
@@ -403,10 +407,15 @@ async function triggerAutoFirstMessage(characterId) {
   
   const activeChatId = getActiveChatId(characterId);
   const now = Date.now();
+  const hasExistingSwipes = existingSwipes && Array.isArray(existingSwipes) && existingSwipes.length > 0;
+  const pendingSwipes = hasExistingSwipes ? [...existingSwipes, ""] : null;
+  const newSwipeIndex = hasExistingSwipes ? existingSwipes.length : undefined;
+
   state.chats = appendMessage(state.chats, activeChatId, {
     role: "assistant",
     content: "",
-    timestamp: now
+    timestamp: now,
+    ...(pendingSwipes ? { swipes: pendingSwipes, swipeIndex: newSwipeIndex } : {})
   });
   saveChats(state.chats);
   renderMessages();
@@ -3595,6 +3604,12 @@ async function handleInlineRegenerate(msgIndex) {
   const targetMsg = chat[msgIndex];
   if (targetMsg.role !== "assistant") return;
 
+  const existingSwipes = (targetMsg.swipes && Array.isArray(targetMsg.swipes) && targetMsg.swipes.length > 0)
+    ? [...targetMsg.swipes]
+    : (targetMsg.content ? [targetMsg.content] : []);
+  const newSwipeIndex = existingSwipes.length;
+  const pendingSwipes = [...existingSwipes, ""];
+
   let userMsgIndex = msgIndex - 1;
   let isRegeneratingSecondOfDuo = false;
 
@@ -3627,7 +3642,7 @@ async function handleInlineRegenerate(msgIndex) {
       saveChats(state.chats);
       renderMessages();
     } else {
-      await triggerAutoFirstMessage(character.id);
+      await triggerAutoFirstMessage(character.id, existingSwipes);
     }
     return;
   }
@@ -3672,7 +3687,12 @@ async function handleInlineRegenerate(msgIndex) {
         const partnerChar = targetChar.id === primaryChar.id ? char2 : primaryChar;
 
         state.chats = appendMessage(state.chats, activeChatId, {
-          role: "assistant", content: "", timestamp: Date.now(), characterId: targetChar.id
+          role: "assistant",
+          content: "",
+          timestamp: Date.now(),
+          characterId: targetChar.id,
+          swipes: pendingSwipes,
+          swipeIndex: newSwipeIndex
         });
         saveChats(state.chats);
         renderMessages();
@@ -3802,7 +3822,12 @@ async function handleInlineRegenerate(msgIndex) {
     } else {
       // --- SOLO REGENERATION ---
       state.chats = appendMessage(state.chats, activeChatId, {
-        role: "assistant", content: "", timestamp: Date.now(), isGmMessage: isGm
+        role: "assistant",
+        content: "",
+        timestamp: Date.now(),
+        isGmMessage: isGm,
+        swipes: pendingSwipes,
+        swipeIndex: newSwipeIndex
       });
       saveChats(state.chats);
       renderMessages();
@@ -4337,6 +4362,39 @@ function handleHotkey(e) {
     state.selectedMessageIndex = null;
     renderMessages();
     setStatus("Selection cleared.");
+  } else if (e.altKey && (e.key === "ArrowLeft" || e.key === "Left")) {
+    e.preventDefault();
+    handleSwipeHotkey(-1);
+  } else if (e.altKey && (e.key === "ArrowRight" || e.key === "Right")) {
+    e.preventDefault();
+    handleSwipeHotkey(1);
+  }
+}
+
+function handleSwipeHotkey(direction) {
+  if (state.isStreaming) return;
+  const isGm = state.sidebarTab === "gm";
+  const activeId = isGm ? state.activeGmSceneId : state.activeCharacterId;
+  if (!activeId) return;
+
+  const activeChatId = getActiveChatId(activeId);
+  const chat = state.chats[activeChatId] || [];
+  if (chat.length === 0) return;
+
+  const lastIndex = chat.length - 1;
+  const lastMsg = chat[lastIndex];
+  if (!lastMsg || lastMsg.role !== "assistant") return;
+
+  const swipes = Array.isArray(lastMsg.swipes) && lastMsg.swipes.length > 0
+    ? lastMsg.swipes
+    : (lastMsg.content ? [lastMsg.content] : []);
+  const currentIndex = lastMsg.swipeIndex !== undefined ? lastMsg.swipeIndex : (swipes.length - 1);
+  const targetIndex = currentIndex + direction;
+
+  if (targetIndex >= 0 && targetIndex < swipes.length) {
+    handleSwipeMessage(lastIndex, targetIndex);
+  } else if (direction > 0 && targetIndex >= swipes.length) {
+    handleInlineRegenerate(lastIndex);
   }
 }
 
@@ -6301,6 +6359,8 @@ function registerCallbacks() {
   onAddStatusCondition((charId, cond) => handleAddStatusCondition(charId, cond));
   onRemoveStatusCondition((charId, cond) => handleRemoveStatusCondition(charId, cond));
   onEditMessage((msgIndex, newContent) => handleEditMessage(msgIndex, newContent));
+  onSwipeMessage((msgIndex, newSwipeIndex) => handleSwipeMessage(msgIndex, newSwipeIndex));
+  onContinueMessage((msgIndex) => handleContinueResponse(msgIndex));
   onReplyMessage((msgIndex) => handleReply(msgIndex));
   onDeleteMessage((msgIndex) => handleDeleteMessage(msgIndex));
   onReactionChange((msgIndex, reaction) => handleReaction(msgIndex, reaction));
@@ -6389,7 +6449,18 @@ function handleEditMessage(msgIndex, newContent) {
 
   if (newContent === null || newContent === undefined || newContent === msg.content) return;
 
-  chat[msgIndex] = { ...msg, content: newContent, edited: true };
+  let updatedMsg = { ...msg, content: newContent, edited: true };
+  if (Array.isArray(updatedMsg.swipes) && updatedMsg.swipes.length > 0) {
+    const sIdx = (typeof updatedMsg.swipeIndex === "number" && updatedMsg.swipeIndex >= 0 && updatedMsg.swipeIndex < updatedMsg.swipes.length)
+      ? updatedMsg.swipeIndex
+      : (updatedMsg.swipes.length - 1);
+    const updatedSwipes = [...updatedMsg.swipes];
+    updatedSwipes[sIdx] = newContent;
+    updatedMsg.swipes = updatedSwipes;
+    updatedMsg.swipeIndex = sIdx;
+  }
+
+  chat[msgIndex] = updatedMsg;
   state.chats = { ...state.chats, [activeChatId]: chat };
   saveChats(state.chats);
   renderMessages();
@@ -6399,6 +6470,144 @@ function handleEditMessage(msgIndex, newContent) {
     handleInlineRegenerate(msgIndex + 1);
   } else {
     setStatus("Message edited.");
+  }
+}
+
+function handleSwipeMessage(msgIndex, newSwipeIndex) {
+  const isGm = state.sidebarTab === "gm";
+  const activeId = isGm ? state.activeGmSceneId : state.activeCharacterId;
+  if (!activeId) return;
+
+  const activeChatId = getActiveChatId(activeId);
+  const chat = [...(state.chats[activeChatId] || [])];
+  const msg = chat[msgIndex];
+  if (!msg) return;
+
+  const swipes = Array.isArray(msg.swipes) && msg.swipes.length > 0
+    ? msg.swipes
+    : (msg.content ? [msg.content] : []);
+  if (newSwipeIndex < 0 || newSwipeIndex >= swipes.length) return;
+
+  chat[msgIndex] = {
+    ...msg,
+    swipes,
+    swipeIndex: newSwipeIndex,
+    content: swipes[newSwipeIndex]
+  };
+
+  state.chats = { ...state.chats, [activeChatId]: chat };
+  saveChats(state.chats);
+  renderMessages();
+}
+
+async function handleContinueResponse(msgIndex) {
+  if (state.isStreaming) return;
+
+  const isGm = state.sidebarTab === "gm";
+  const activeId = isGm ? state.activeGmSceneId : state.activeCharacterId;
+  const character = isGm ? null : getActiveCharacter();
+
+  if (isGm && !activeId) return;
+  if (!isGm && !character) return;
+  const activeChatId = getActiveChatId(activeId);
+  const chat = state.chats[activeChatId] || [];
+
+  if (msgIndex < 0 || msgIndex >= chat.length) return;
+  const targetMsg = chat[msgIndex];
+  if (targetMsg.role !== "assistant") return;
+
+  syncApiSettingsFromInputs();
+  const apiConfig = getEffectiveApiConfig(state.apiSettings, dom.apiKeyInput?.value);
+  if (apiConfig.baseUrl === null && !apiConfig.apiKey) return setStatus("Paste OpenRouter API key first.");
+  if (!apiConfig.model) return setStatus("Select a model first.");
+
+  const isRuMsg = (state.apiSettings?.chatLanguage || "ru") === "ru";
+  const continuePrompt = isRuMsg
+    ? "[Системное указание: Продолжи своё последнее сообщение прямо с того места, где ты остановился. Пиши сразу продолжение, без повтора уже написанного текста и без мета-комментариев.]"
+    : "[System Directive: Continue your last response right from where you stopped. Write only the continuation immediately, without repeating prior text or adding meta commentary.]";
+
+  state.isStreaming = true;
+  if (dom.sendBtn) dom.sendBtn.disabled = true;
+  setStatus("Continuing response...");
+
+  if (state.abortController) {
+    state.abortController.abort();
+  }
+  state.abortController = new AbortController();
+
+  const originalContent = targetMsg.content || "";
+  const existingSwipes = (targetMsg.swipes && Array.isArray(targetMsg.swipes) && targetMsg.swipes.length > 0)
+    ? [...targetMsg.swipes]
+    : (originalContent ? [originalContent] : []);
+  const activeSwipeIdx = (typeof targetMsg.swipeIndex === "number" && targetMsg.swipeIndex >= 0 && targetMsg.swipeIndex < existingSwipes.length)
+    ? targetMsg.swipeIndex
+    : Math.max(0, existingSwipes.length - 1);
+
+  const states = getChatStates(activeChatId);
+  const requestMessages = isGm
+    ? [
+        { role: "system", content: buildGroupScenePrompt(continuePrompt) },
+        ...chat.map(m => ({ role: m.role, content: m.content })),
+        { role: "user", content: continuePrompt }
+      ]
+    : buildApiMessages(character, continuePrompt, null, null, states, activeChatId);
+
+  try {
+    let continuedText = "";
+    let streamedOk = false;
+    try {
+      continuedText = await sendMessageStream({
+        apiKey: apiConfig.apiKey,
+        baseUrl: apiConfig.baseUrl,
+        model: apiConfig.model,
+        messages: requestMessages,
+        temperature: apiConfig.temperature,
+        maxTokens: apiConfig.maxTokens,
+        signal: state.abortController.signal,
+        enableThinking: apiConfig.enableThinking,
+        onToken: (agg) => {
+          const sep = (originalContent && !originalContent.endsWith(" ") && !agg.startsWith(" ") && !agg.startsWith("\n")) ? " " : "";
+          const combined = originalContent + sep + agg;
+          state.chats = replaceLastAssistantMessage(state.chats, activeChatId, combined);
+          renderMessagesThrottled();
+        }
+      });
+      streamedOk = true;
+    } catch (_streamErr) {
+      continuedText = await sendMessageNonStream({
+        apiKey: apiConfig.apiKey,
+        baseUrl: apiConfig.baseUrl,
+        model: apiConfig.model,
+        messages: requestMessages,
+        temperature: apiConfig.temperature,
+        maxTokens: apiConfig.maxTokens,
+        signal: state.abortController.signal,
+        enableThinking: apiConfig.enableThinking
+      });
+    }
+
+    const sep = (originalContent && !originalContent.endsWith(" ") && !continuedText.startsWith(" ") && !continuedText.startsWith("\n")) ? " " : "";
+    const finalCombined = originalContent + sep + (continuedText || "");
+    state.chats = replaceLastAssistantMessage(state.chats, activeChatId, finalCombined);
+
+    const curChat = state.chats[activeChatId];
+    if (curChat && curChat.length > 0) {
+      const last = curChat[curChat.length - 1];
+      if (last && last.role === "assistant" && Array.isArray(last.swipes) && last.swipes.length > 0) {
+        last.swipes[last.swipeIndex] = finalCombined;
+      }
+    }
+
+    saveChats(state.chats);
+    renderMessages();
+    setStatus("Continuation completed.");
+  } catch (err) {
+    const errorMsg = mapOpenRouterError(err);
+    setStatus(`Continuation error: ${errorMsg}`);
+  } finally {
+    state.isStreaming = false;
+    state.abortController = null;
+    if (dom.sendBtn) dom.sendBtn.disabled = false;
   }
 }
 
@@ -6739,7 +6948,7 @@ function updateStatsUI(lastPromptTokens = null, lastCompletionTokens = null, las
     if (promptCount !== null && promptCount !== undefined) {
       dom.headerTokenBadge.style.display = "inline-flex";
       const costBadge = costVal ? ` • $${costVal.toFixed(4)}` : "";
-      dom.headerTokenBadge.innerHTML = `<span>📥</span> <span>${promptCount.toLocaleString()} токенов${costBadge}</span>`;
+      dom.headerTokenBadge.innerHTML = `<svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>${promptCount.toLocaleString()} токенов${costBadge}</span>`;
       dom.headerTokenBadge.title = isEstimated
         ? `Текущий расчетный контекст: ~${promptCount.toLocaleString()} токенов. Нажмите, чтобы открыть подробную статистику.`
         : `Последний промпт: ${promptCount.toLocaleString()} токенов | Ответ: ${(compCount || 0).toLocaleString()} токенов | Стоимость хода: $${(costVal || 0).toFixed(6)}. Нажмите для подробной статистики.`;
@@ -7830,51 +8039,151 @@ if (dom.headerTokenBadge) {
   });
 }
 
-// ── CHAT FONT SIZE CONTROLS ──
-let currentChatFontSize = loadChatFontSize();
+// ── READER COMFORT CONTROLS (FONT SIZE, LINE HEIGHT, MAX WIDTH) ──
+let currentReaderSettings = loadReaderSettings();
 
-function applyChatFontSize(size) {
-  currentChatFontSize = Math.min(24, Math.max(12, Math.round(size * 10) / 10));
-  document.documentElement.style.setProperty("--chat-font-size", `${currentChatFontSize}px`);
+function applyReaderSettings(settings) {
+  if (!settings) settings = {};
+  currentReaderSettings = {
+    fontSize: Math.min(24, Math.max(12, Math.round((settings.fontSize ?? currentReaderSettings.fontSize ?? 15.5) * 10) / 10)),
+    lineHeight: settings.lineHeight ?? currentReaderSettings.lineHeight ?? 1.74,
+    maxWidth: settings.maxWidth ?? currentReaderSettings.maxWidth ?? "860px"
+  };
+
+  document.documentElement.style.setProperty("--chat-font-size", `${currentReaderSettings.fontSize}px`);
+  document.documentElement.style.setProperty("--chat-line-height", `${currentReaderSettings.lineHeight}`);
+  document.documentElement.style.setProperty("--chat-max-width", `${currentReaderSettings.maxWidth}`);
+
   if (dom.fontSizeDisplay) {
-    dom.fontSizeDisplay.textContent = `${currentChatFontSize}`;
+    dom.fontSizeDisplay.textContent = `${currentReaderSettings.fontSize}`;
+  }
+  if (dom.readerFontSizeVal) {
+    dom.readerFontSizeVal.textContent = `${currentReaderSettings.fontSize}px`;
   }
   const settingsDisplay = document.getElementById("settingsFontSizeDisplay");
   if (settingsDisplay) {
-    settingsDisplay.textContent = `${currentChatFontSize}`;
+    settingsDisplay.textContent = `${currentReaderSettings.fontSize}`;
   }
+
+  // Update active state on line-height and max-width buttons in popover
+  document.querySelectorAll(".reader-line-btn").forEach((btn) => {
+    const lh = parseFloat(btn.dataset.lh);
+    btn.classList.toggle("active", Math.abs(lh - currentReaderSettings.lineHeight) < 0.05);
+  });
+  document.querySelectorAll(".reader-width-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.width === currentReaderSettings.maxWidth);
+  });
+
+  saveReaderSettings(currentReaderSettings);
+  saveChatFontSize(currentReaderSettings.fontSize);
 }
 
+function applyChatFontSize(size) {
+  applyReaderSettings({ ...currentReaderSettings, fontSize: size });
+}
+
+// Reader Popover toggle & close
+if (dom.readerSettingsBtn && dom.readerSettingsPopover) {
+  dom.readerSettingsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const isHidden = dom.readerSettingsPopover.style.display === "none";
+    dom.readerSettingsPopover.style.display = isHidden ? "flex" : "none";
+  });
+
+  if (dom.closeReaderSettingsBtn) {
+    dom.closeReaderSettingsBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      dom.readerSettingsPopover.style.display = "none";
+    });
+  }
+
+  // Close when clicking outside
+  document.addEventListener("click", (e) => {
+    if (dom.readerSettingsPopover.style.display !== "none" && !dom.readerSettingsPopover.contains(e.target) && e.target !== dom.readerSettingsBtn) {
+      dom.readerSettingsPopover.style.display = "none";
+    }
+  });
+
+  dom.readerSettingsPopover.addEventListener("click", (e) => e.stopPropagation());
+}
+
+// Font size increment/decrement
+if (dom.readerFontDecBtn) {
+  dom.readerFontDecBtn.addEventListener("click", () => {
+    applyReaderSettings({ ...currentReaderSettings, fontSize: currentReaderSettings.fontSize - 0.5 });
+  });
+}
+if (dom.readerFontIncBtn) {
+  dom.readerFontIncBtn.addEventListener("click", () => {
+    applyReaderSettings({ ...currentReaderSettings, fontSize: currentReaderSettings.fontSize + 0.5 });
+  });
+}
+
+// Line height buttons
+document.querySelectorAll(".reader-line-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const lh = parseFloat(btn.dataset.lh);
+    if (!isNaN(lh)) {
+      applyReaderSettings({ ...currentReaderSettings, lineHeight: lh });
+    }
+  });
+});
+
+// Max width buttons
+document.querySelectorAll(".reader-width-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const w = btn.dataset.width;
+    if (w) {
+      applyReaderSettings({ ...currentReaderSettings, maxWidth: w });
+    }
+  });
+});
+
+// Floating Scroll to Bottom button
+if (dom.chatScrollBottomBtn && dom.messages) {
+  dom.chatScrollBottomBtn.addEventListener("click", () => {
+    dom.messages.scrollTo({ top: dom.messages.scrollHeight, behavior: "smooth" });
+    dom.chatScrollBottomBtn.style.display = "none";
+  });
+
+  dom.messages.addEventListener("scroll", () => {
+    const dist = dom.messages.scrollHeight - dom.messages.scrollTop - dom.messages.clientHeight;
+    dom.chatScrollBottomBtn.style.display = dist > 120 ? "flex" : "none";
+  }, { passive: true });
+}
+
+// Header State Badge click
+if (dom.headerStateBadge && dom.toggleSidebarRightBtn) {
+  dom.headerStateBadge.addEventListener("click", () => {
+    dom.toggleSidebarRightBtn.click();
+  });
+}
+
+// Legacy font size buttons in options menu
 if (dom.fontSizeIncBtn) {
   dom.fontSizeIncBtn.addEventListener("click", () => {
-    applyChatFontSize(currentChatFontSize + 1);
-    saveChatFontSize(currentChatFontSize);
+    applyChatFontSize(currentReaderSettings.fontSize + 1);
   });
 }
-
 if (dom.fontSizeDecBtn) {
   dom.fontSizeDecBtn.addEventListener("click", () => {
-    applyChatFontSize(currentChatFontSize - 1);
-    saveChatFontSize(currentChatFontSize);
+    applyChatFontSize(currentReaderSettings.fontSize - 1);
   });
 }
-
 const sInc = document.getElementById("settingsFontSizeIncBtn");
 if (sInc) {
   sInc.addEventListener("click", () => {
-    applyChatFontSize(currentChatFontSize + 1);
-    saveChatFontSize(currentChatFontSize);
+    applyChatFontSize(currentReaderSettings.fontSize + 1);
   });
 }
 const sDec = document.getElementById("settingsFontSizeDecBtn");
 if (sDec) {
   sDec.addEventListener("click", () => {
-    applyChatFontSize(currentChatFontSize - 1);
-    saveChatFontSize(currentChatFontSize);
+    applyChatFontSize(currentReaderSettings.fontSize - 1);
   });
 }
 
-applyChatFontSize(currentChatFontSize);
+applyReaderSettings(currentReaderSettings);
 
 // ── DIALOGUE COLOR THEME CONTROLS ──
 const DIALOGUE_THEMES = {
@@ -7899,19 +8208,19 @@ const DIALOGUE_THEMES = {
     bg: "rgba(255, 255, 255, 0.03)"
   },
   gold: {
-    color: "#ffffff",
-    border: "rgba(255, 255, 255, 0.55)",
-    bg: "rgba(255, 255, 255, 0.08)"
+    color: "#fde047",
+    border: "rgba(253, 224, 71, 0.45)",
+    bg: "rgba(253, 224, 71, 0.08)"
   },
   cyan: {
-    color: "#f4f4f5",
-    border: "rgba(255, 255, 255, 0.35)",
-    bg: "rgba(255, 255, 255, 0.06)"
+    color: "#38bdf8",
+    border: "rgba(56, 189, 248, 0.45)",
+    bg: "rgba(56, 189, 248, 0.08)"
   },
   emerald: {
-    color: "#e4e4e7",
-    border: "#71717a",
-    bg: "rgba(255, 255, 255, 0.04)"
+    color: "#34d399",
+    border: "rgba(52, 211, 153, 0.45)",
+    bg: "rgba(52, 211, 153, 0.08)"
   }
 };
 
@@ -7938,6 +8247,54 @@ document.querySelectorAll(".dialogue-color-dot").forEach((dot) => {
 });
 
 applyDialogueColorTheme(currentDialogueTheme);
+
+// ── APP COLOR THEMES (Emerald, Cyberpunk, Sapphire, Amber, OLED) ──
+const VALID_APP_THEMES = ["emerald", "cyberpunk", "sapphire", "amber", "oled"];
+const STORAGE_APP_THEME_KEY = "openrouter_app_theme_v1";
+
+function loadAppTheme() {
+  try {
+    const saved = localStorage.getItem(STORAGE_APP_THEME_KEY);
+    if (saved && VALID_APP_THEMES.includes(saved)) {
+      return saved;
+    }
+  } catch (_) {}
+  return "emerald";
+}
+
+function saveAppTheme(themeName) {
+  try {
+    localStorage.setItem(STORAGE_APP_THEME_KEY, themeName);
+  } catch (_) {}
+}
+
+function applyAppTheme(themeName) {
+  const safeTheme = VALID_APP_THEMES.includes(themeName) ? themeName : "emerald";
+  document.documentElement.setAttribute("data-theme", safeTheme);
+
+  // Update active state on theme cards
+  document.querySelectorAll("[data-app-theme]").forEach((card) => {
+    const isActive = card.dataset.appTheme === safeTheme;
+    card.classList.toggle("active", isActive);
+  });
+}
+
+function initAppThemes() {
+  const currentTheme = loadAppTheme();
+  applyAppTheme(currentTheme);
+
+  document.querySelectorAll("[data-app-theme]").forEach((card) => {
+    card.addEventListener("click", () => {
+      const theme = card.dataset.appTheme;
+      if (theme) {
+        applyAppTheme(theme);
+        saveAppTheme(theme);
+      }
+    });
+  });
+}
+
+initAppThemes();
 
 bootstrap();
 console.log("App script loaded completely");

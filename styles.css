@@ -1,55 +1,222 @@
-:root {
+:root,
+[data-theme="emerald"] {
   /* Fonts */
   --font-sans: "Outfit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+  --chat-font-size: 15.5px;
+  --chat-line-height: 1.74;
+  --chat-max-width: 860px;
 
-  /* App Backgrounds - Dark Monochrome (Linear / Vercel Aesthetic) */
-  --bg-app: #000000;                     /* Deep pure obsidian black */
-  --bg-sidebar: rgba(10, 10, 12, 0.78);  /* Glassmorphic monochrome dark sidebar */
-  --bg-chat: transparent;                /* Transparent to reveal subtle ambient gradients */
-  --bg-panel: rgba(14, 14, 16, 0.80);    /* Elevated dark glass panel */
-  --bg-dialog: rgba(12, 12, 14, 0.94);   /* Deep glass overlay for modal dialogs */
-  
-  /* Message Bubbles - High-contrast Dark Monochrome */
+  /* Theme: Emerald Night (Default) */
+  --theme-name: "emerald";
+  --bg-app: #06090e;
+  --bg-sidebar: rgba(10, 14, 18, 0.82);
+  --bg-chat: transparent;
+  --bg-panel: rgba(13, 19, 24, 0.84);
+  --bg-dialog: rgba(11, 16, 22, 0.95);
+
+  /* Ambient atmospheric glow */
+  --ambient-glow-1: rgba(45, 212, 191, 0.08);
+  --ambient-glow-2: rgba(20, 184, 166, 0.05);
+
+  /* Message Bubbles */
   --bubble-user: linear-gradient(135deg, rgba(255, 255, 255, 0.115) 0%, rgba(255, 255, 255, 0.055) 100%);
   --bubble-user-border: rgba(255, 255, 255, 0.22);
   --bubble-user-glow: rgba(255, 255, 255, 0.05);
-  --bubble-assistant: linear-gradient(135deg, rgba(20, 20, 24, 0.92) 0%, rgba(12, 12, 14, 0.90) 100%);
-  --bubble-assistant-border: rgba(255, 255, 255, 0.09);
+  --bubble-assistant: linear-gradient(135deg, rgba(16, 22, 28, 0.94) 0%, rgba(10, 14, 18, 0.92) 100%);
+  --bubble-assistant-border: rgba(45, 212, 191, 0.16);
   --bubble-assistant-glow: rgba(0, 0, 0, 0.5);
 
-  /* Typography - Clean High-Contrast */
+  /* Typography */
   --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;     /* Neutral zinc secondary */
-  --text-muted: #71717a;         /* Muted zinc helper text */
-  --dialogue-color: #ffffff;     /* Pure crisp white for spoken dialogue */
-  --dialogue-border: rgba(255, 255, 255, 0.45);
-  --dialogue-bg: rgba(255, 255, 255, 0.06);
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --dialogue-color: #ffffff;
+  --dialogue-border: rgba(45, 212, 191, 0.65);
+  --dialogue-bg: rgba(45, 212, 191, 0.08);
 
-  /* Accent - Single source of truth. Change --accent-rgb + --accent to re-theme. */
-  --accent-rgb: 45, 212, 191;                              /* teal-400, rgb triple for rgba() composition */
+  /* Accent */
+  --accent-rgb: 45, 212, 191;
   --accent: #2dd4bf;
   --accent-hover: #5eead4;
   --accent-active: #14b8a6;
-  --accent-contrast: #042f2e;                              /* text/icons placed ON accent fills */
-  --accent-muted: rgba(45, 212, 191, 0.14);               /* subtle fills: chips, active rows */
-  --accent-border: rgba(45, 212, 191, 0.38);              /* borders of accent-tinted elements */
-  --accent-glow: rgba(45, 212, 191, 0.28);                /* shadow/glow halos */
-  --accent-ring: rgba(45, 212, 191, 0.45);                /* focus rings */
-  --accent-gradient: linear-gradient(135deg, #5eead4 0%, #14b8a6 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #99f6e4 0%, #2dd4bf 100%);
+  --accent-contrast: #042f2e;
+  --accent-muted: rgba(45, 212, 191, 0.14);
+  --accent-border: rgba(45, 212, 191, 0.38);
+  --accent-glow: rgba(45, 212, 191, 0.28);
+  --accent-ring: rgba(45, 212, 191, 0.45);
+  --accent-gradient: linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #5eead4 0%, #14b8a6 100%);
 
-  /* Legacy aliases - kept so existing rules keep working, now derived from --accent */
   --accent-color: var(--accent);
-
   --accent-gold: var(--accent);
   --accent-gold-rgb: var(--accent-rgb);
   --accent-gold-hover: var(--accent-hover);
   --accent-gold-gradient: var(--accent-gradient);
   --accent-gold-gradient-hover: var(--accent-gradient-hover);
-
   --accent-emerald: var(--accent);
   --accent-emerald-rgb: var(--accent-rgb);
+}
+
+[data-theme="cyberpunk"] {
+  --theme-name: "cyberpunk";
+  --bg-app: #090814;
+  --bg-sidebar: rgba(14, 11, 24, 0.86);
+  --bg-chat: transparent;
+  --bg-panel: rgba(19, 14, 32, 0.88);
+  --bg-dialog: rgba(16, 12, 28, 0.96);
+
+  --ambient-glow-1: rgba(192, 132, 252, 0.12);
+  --ambient-glow-2: rgba(244, 63, 94, 0.08);
+
+  --bubble-user: linear-gradient(135deg, rgba(192, 132, 252, 0.16) 0%, rgba(244, 63, 94, 0.08) 100%);
+  --bubble-user-border: rgba(192, 132, 252, 0.35);
+  --bubble-user-glow: rgba(192, 132, 252, 0.10);
+  --bubble-assistant: linear-gradient(135deg, rgba(22, 16, 36, 0.95) 0%, rgba(13, 10, 22, 0.92) 100%);
+  --bubble-assistant-border: rgba(192, 132, 252, 0.22);
+  --bubble-assistant-glow: rgba(0, 0, 0, 0.6);
+
+  --accent-rgb: 192, 132, 252;
+  --accent: #c084fc;
+  --accent-hover: #d8b4fe;
+  --accent-active: #a855f7;
+  --accent-contrast: #2e1065;
+  --accent-muted: rgba(192, 132, 252, 0.16);
+  --accent-border: rgba(192, 132, 252, 0.42);
+  --accent-glow: rgba(192, 132, 252, 0.35);
+  --accent-ring: rgba(192, 132, 252, 0.5);
+  --accent-gradient: linear-gradient(135deg, #c084fc 0%, #f43f5e 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #d8b4fe 0%, #fb7185 100%);
+
+  --accent-color: var(--accent);
+  --accent-gold: var(--accent);
+  --accent-gold-rgb: var(--accent-rgb);
+  --accent-gold-hover: var(--accent-hover);
+  --accent-gold-gradient: var(--accent-gradient);
+  --accent-gold-gradient-hover: var(--accent-gradient-hover);
+  --accent-emerald: var(--accent);
+  --accent-emerald-rgb: var(--accent-rgb);
+}
+
+[data-theme="sapphire"] {
+  --theme-name: "sapphire";
+  --bg-app: #060b17;
+  --bg-sidebar: rgba(9, 16, 32, 0.86);
+  --bg-chat: transparent;
+  --bg-panel: rgba(12, 22, 44, 0.88);
+  --bg-dialog: rgba(10, 18, 36, 0.96);
+
+  --ambient-glow-1: rgba(59, 130, 246, 0.12);
+  --ambient-glow-2: rgba(56, 189, 248, 0.07);
+
+  --bubble-user: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(56, 189, 248, 0.08) 100%);
+  --bubble-user-border: rgba(59, 130, 246, 0.35);
+  --bubble-user-glow: rgba(59, 130, 246, 0.10);
+  --bubble-assistant: linear-gradient(135deg, rgba(14, 24, 46, 0.95) 0%, rgba(9, 16, 30, 0.92) 100%);
+  --bubble-assistant-border: rgba(59, 130, 246, 0.22);
+  --bubble-assistant-glow: rgba(0, 0, 0, 0.6);
+
+  --accent-rgb: 59, 130, 246;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --accent-active: #2563eb;
+  --accent-contrast: #0f172a;
+  --accent-muted: rgba(59, 130, 246, 0.16);
+  --accent-border: rgba(59, 130, 246, 0.42);
+  --accent-glow: rgba(59, 130, 246, 0.35);
+  --accent-ring: rgba(59, 130, 246, 0.5);
+  --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #60a5fa 0%, #22d3ee 100%);
+
+  --accent-color: var(--accent);
+  --accent-gold: var(--accent);
+  --accent-gold-rgb: var(--accent-rgb);
+  --accent-gold-hover: var(--accent-hover);
+  --accent-gold-gradient: var(--accent-gradient);
+  --accent-gold-gradient-hover: var(--accent-gradient-hover);
+  --accent-emerald: var(--accent);
+  --accent-emerald-rgb: var(--accent-rgb);
+}
+
+[data-theme="amber"] {
+  --theme-name: "amber";
+  --bg-app: #0e0a06;
+  --bg-sidebar: rgba(22, 16, 10, 0.86);
+  --bg-chat: transparent;
+  --bg-panel: rgba(28, 20, 13, 0.88);
+  --bg-dialog: rgba(24, 17, 11, 0.96);
+
+  --ambient-glow-1: rgba(245, 158, 11, 0.11);
+  --ambient-glow-2: rgba(234, 88, 12, 0.06);
+
+  --bubble-user: linear-gradient(135deg, rgba(245, 158, 11, 0.16) 0%, rgba(234, 88, 12, 0.08) 100%);
+  --bubble-user-border: rgba(245, 158, 11, 0.35);
+  --bubble-user-glow: rgba(245, 158, 11, 0.10);
+  --bubble-assistant: linear-gradient(135deg, rgba(30, 22, 15, 0.95) 0%, rgba(18, 13, 9, 0.92) 100%);
+  --bubble-assistant-border: rgba(245, 158, 11, 0.22);
+  --bubble-assistant-glow: rgba(0, 0, 0, 0.6);
+
+  --accent-rgb: 245, 158, 11;
+  --accent: #f59e0b;
+  --accent-hover: #fbbf24;
+  --accent-active: #d97706;
+  --accent-contrast: #451a03;
+  --accent-muted: rgba(245, 158, 11, 0.16);
+  --accent-border: rgba(245, 158, 11, 0.42);
+  --accent-glow: rgba(245, 158, 11, 0.35);
+  --accent-ring: rgba(245, 158, 11, 0.5);
+  --accent-gradient: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+
+  --accent-color: var(--accent);
+  --accent-gold: var(--accent);
+  --accent-gold-rgb: var(--accent-rgb);
+  --accent-gold-hover: var(--accent-hover);
+  --accent-gold-gradient: var(--accent-gradient);
+  --accent-gold-gradient-hover: var(--accent-gradient-hover);
+  --accent-emerald: var(--accent);
+  --accent-emerald-rgb: var(--accent-rgb);
+}
+
+[data-theme="oled"] {
+  --theme-name: "oled";
+  --bg-app: #000000;
+  --bg-sidebar: rgba(10, 10, 12, 0.88);
+  --bg-chat: transparent;
+  --bg-panel: rgba(14, 14, 16, 0.90);
+  --bg-dialog: rgba(12, 12, 14, 0.98);
+
+  --ambient-glow-1: transparent;
+  --ambient-glow-2: transparent;
+
+  --bubble-user: linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%);
+  --bubble-user-border: rgba(255, 255, 255, 0.25);
+  --bubble-user-glow: rgba(255, 255, 255, 0.04);
+  --bubble-assistant: linear-gradient(135deg, rgba(18, 18, 20, 0.96) 0%, rgba(12, 12, 14, 0.94) 100%);
+  --bubble-assistant-border: rgba(255, 255, 255, 0.12);
+  --bubble-assistant-glow: rgba(0, 0, 0, 0.5);
+
+  --accent-rgb: 228, 228, 231;
+  --accent: #e4e4e7;
+  --accent-hover: #ffffff;
+  --accent-active: #a1a1aa;
+  --accent-contrast: #09090b;
+  --accent-muted: rgba(255, 255, 255, 0.12);
+  --accent-border: rgba(255, 255, 255, 0.35);
+  --accent-glow: rgba(255, 255, 255, 0.18);
+  --accent-ring: rgba(255, 255, 255, 0.4);
+  --accent-gradient: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #ffffff 0%, #d4d4d8 100%);
+
+  --accent-color: var(--accent);
+  --accent-gold: var(--accent);
+  --accent-gold-rgb: var(--accent-rgb);
+  --accent-gold-hover: var(--accent-hover);
+  --accent-gold-gradient: var(--accent-gradient);
+  --accent-gold-gradient-hover: var(--accent-gradient-hover);
+  --accent-emerald: var(--accent);
+  --accent-emerald-rgb: var(--accent-rgb);
+}
   
   /* Glassmorphism Configuration */
   --glass-bg: rgba(12, 12, 14, 0.78);            /* Crisp frosted glass panels */
@@ -246,9 +413,11 @@ body {
   font-size: 14px;
   color: var(--text-primary);
   background-color: var(--bg-app);
-  background-image: radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
-                    radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 40%);
+  background-image: radial-gradient(circle at 12% 18%, var(--ambient-glow-1, rgba(45, 212, 191, 0.08)) 0%, transparent 48%),
+                    radial-gradient(circle at 88% 82%, var(--ambient-glow-2, rgba(20, 184, 166, 0.05)) 0%, transparent 44%);
+  background-attachment: fixed;
   overflow: hidden;
+  transition: background-color 0.35s ease;
 }
 
 button, input, select, textarea {
@@ -1701,7 +1870,7 @@ svg.feather {
 
 .message {
   width: fit-content;
-  max-width: min(840px, 86%);
+  max-width: min(var(--chat-max-width, 860px), 88%);
   min-width: 180px;
   display: flex;
   flex-direction: column;
@@ -1764,7 +1933,7 @@ svg.feather {
 .message-body {
   padding: 16px 22px;
   border-radius: 18px;
-  line-height: 1.74;
+  line-height: var(--chat-line-height, 1.74);
   font-size: var(--chat-font-size, 15.5px);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", Roboto, "Helvetica Neue", "Outfit", sans-serif;
   letter-spacing: 0.012em;
@@ -1958,31 +2127,32 @@ svg.feather {
 /* ── Modern Floating Inline Actions Panel ── */
 .message-actions-inline {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 2px);
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
   opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
   pointer-events: none;
-  background: rgba(18, 18, 20, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 20px;
-  padding: 3px 6px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+  background: rgba(14, 18, 22, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  padding: 2px 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
   z-index: 10;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 /* Invisible hover bridge connecting bubble and actions panel */
 .message-actions-inline::before {
   content: '';
   position: absolute;
-  top: -12px;
+  top: -10px;
   left: 0;
   right: 0;
-  height: 12px;
+  height: 10px;
   background: transparent;
 }
 
@@ -1993,11 +2163,24 @@ svg.feather {
   left: 4px;
 }
 
-.message:hover .message-actions-inline,
-.message-actions-inline:hover {
-  opacity: 1;
+/* In resting state when message has swipes, keep it subtle (low contrast) so it doesn't distract from reading.
+   When hovering over the message or toolbar, smoothly reveal at full 100% opacity. */
+.message.has-swipes .message-actions-inline,
+.message:has(.message-swipe-bar) .message-actions-inline {
+  opacity: 0.45;
   pointer-events: auto;
   transform: translateY(0);
+}
+
+.message:hover .message-actions-inline,
+.message.has-swipes:hover .message-actions-inline,
+.message-actions-inline:hover {
+  opacity: 1 !important;
+  pointer-events: auto;
+  transform: translateY(0);
+  background: rgba(18, 22, 28, 0.88);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
 /* Mobile-only: the single trigger that opens the action bottom sheet.
@@ -2122,14 +2305,16 @@ svg.feather {
   -webkit-tap-highlight-color: transparent;
 }
 
+
 .message-actions-inline .action-btn {
   background: none;
   border: none;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   color: var(--text-secondary);
+  opacity: 0.65;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   display: inline-flex;
   align-items: center;
@@ -2137,15 +2322,16 @@ svg.feather {
   padding: 0;
 }
 .message-actions-inline .action-btn svg.feather {
-  width: 14px;
-  height: 14px;
+  width: 13px;
+  height: 13px;
   stroke: var(--text-secondary);
   stroke-width: 2;
   transition: stroke 0.2s ease, transform 0.2s ease, fill 0.2s ease;
 }
 .message-actions-inline .action-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+  opacity: 1;
 }
 .message-actions-inline .action-btn:hover svg.feather {
   stroke: #ffffff;
@@ -2154,10 +2340,97 @@ svg.feather {
 .message-actions-inline .action-btn.active {
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
+  opacity: 1;
 }
 .message-actions-inline .action-btn.active svg.feather {
   stroke: #ffffff;
   fill: rgba(255, 255, 255, 0.25);
+}
+
+/* ── Message Swipe Bar ───────────────────────────────────────────────────── */
+.message-swipe-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  user-select: none;
+  box-shadow: none;
+  margin: 0 1px;
+  flex-shrink: 0;
+}
+.swipe-prev,
+.swipe-next {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 0;
+  opacity: 0.65;
+  transition: all 0.15s ease;
+}
+.swipe-prev:hover,
+.swipe-next:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  opacity: 1;
+}
+.swipe-prev:disabled,
+.swipe-next:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+.swipe-counter {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  padding: 0 2px;
+  letter-spacing: 0.2px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* ── Continue Generation Button ─────────────────────────────────────────── */
+.message-actions-inline .action-btn.continue-btn {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  color: var(--accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0 !important;
+  opacity: 0.75;
+  transition: all 0.2s ease;
+}
+.message-actions-inline .action-btn.continue-btn:hover {
+  background: rgba(45, 212, 191, 0.15);
+  color: var(--accent);
+  opacity: 1;
+  transform: scale(1.1);
+}
+.message-actions-inline .action-btn.continue-btn svg.feather {
+  width: 11px;
+  height: 11px;
+  fill: currentColor;
+  stroke: none;
+  margin-left: 1px;
 }
 
 /* ── Inner Monologue Card (Monochrome Terminal Style) ── */
@@ -4555,6 +4828,99 @@ select option {
   margin: 0;
 }
 
+/* --- Theme Selector Cards --- */
+.theme-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.theme-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  user-select: none;
+}
+
+.theme-card:hover {
+  background: rgba(255, 255, 255, 0.065);
+  border-color: rgba(255, 255, 255, 0.22);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.theme-card.active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow), inset 0 0 8px rgba(255, 255, 255, 0.04);
+}
+
+.theme-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-dots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.theme-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.5);
+}
+
+.theme-bar {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.theme-check {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: all 0.2s ease;
+}
+
+.theme-card.active .theme-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.theme-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.theme-card-title {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.theme-card-desc {
+  font-size: 10.5px;
+  color: var(--text-muted);
+}
+
 /* Model Select & Refresh row layout */
 .model-select-refresh-row {
   display: flex;
@@ -6390,22 +6756,35 @@ dialog#personaDialog.janitor-persona-modal {
    Per-role overrides for .message.assistant / .message.user live earlier in
    the file and win on specificity. */
 .dialogue,
-.dialogue-line,
 .message-body .dialogue,
 .gm-block-text .dialogue,
 .gm-block-body .dialogue,
 span.dialogue {
   color: var(--dialogue-color, #ffffff) !important;
+  font-weight: 550;
+  font-style: normal !important;
+  letter-spacing: 0.015em;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 1px !important;
+  margin: 0 !important;
+  display: inline !important;
+  box-shadow: none !important;
+  text-shadow: 0 0 12px var(--ambient-glow-1, rgba(255, 255, 255, 0.15));
+}
+
+.dialogue-line {
+  color: var(--dialogue-color, #ffffff) !important;
   font-weight: 600;
   font-style: normal !important;
-  background: var(--dialogue-bg, rgba(255, 255, 255, 0.06)) !important;
-  border-left: 3.5px solid var(--dialogue-border, #e4e4e7) !important;
+  background: var(--dialogue-bg, rgba(255, 255, 255, 0.05)) !important;
+  border-left: 3.5px solid var(--dialogue-border, var(--accent)) !important;
   border-radius: 0 6px 6px 0 !important;
-  padding: 3px 9px !important;
-  margin: 2px 0 !important;
+  padding: 3px 10px !important;
+  margin: 4px 0 !important;
   display: inline-block !important;
   letter-spacing: 0.015em;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
 .action,
@@ -6420,10 +6799,11 @@ span.action,
 .gm-block-body i,
 em,
 i {
-  color: #d4d4d8 !important;
+  color: #a1a1aa !important;
   font-style: italic;
   font-size: inherit !important;
   opacity: 0.94 !important;
+  letter-spacing: 0.01em;
 }
 
 .dialogue-color-dot {
@@ -6434,6 +6814,204 @@ i {
   border-color: #ffffff !important;
   box-shadow: 0 0 10px currentColor, 0 2px 6px rgba(0,0,0,0.5);
   transform: scale(1.22);
+}
+
+/* ── Thoughts Highlighting ─────────────────────────────────────────────── */
+.thought,
+span.thought,
+.message-body .thought {
+  display: block;
+  font-style: italic;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.035);
+  border-left: 2.5px solid rgba(255, 255, 255, 0.28);
+  padding: 6px 14px;
+  margin: 8px 0;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.96em;
+  line-height: 1.6;
+}
+
+/* ── Reader Comfort Popover & Aa Button ──────────────────────────────────── */
+.reader-settings-wrap {
+  position: relative;
+}
+.reader-btn-text {
+  font-weight: 700;
+  font-size: 13.5px;
+  font-family: "Outfit", Georgia, serif;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+.reader-settings-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 290px;
+  background: var(--bg-panel, rgba(16, 22, 28, 0.96));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: fadeInDown 0.18s ease-out;
+}
+.reader-popover-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.reader-popover-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.reader-popover-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.reader-popover-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.reader-popover-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.reader-popover-label {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.reader-font-ctrls,
+.reader-line-ctrls,
+.reader-width-ctrls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.reader-pill-btn,
+.reader-line-btn,
+.reader-width-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+.reader-pill-btn:hover,
+.reader-line-btn:hover,
+.reader-width-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+}
+.reader-line-btn.active,
+.reader-width-btn.active {
+  background: var(--accent-gradient, var(--accent));
+  color: #042f2e;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px var(--accent-glow, rgba(45, 212, 191, 0.3));
+}
+.reader-val-badge {
+  min-width: 54px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ── Floating Scroll-to-Bottom Button ── */
+.chat-scroll-bottom-btn {
+  position: absolute;
+  right: 24px;
+  bottom: 84px;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bg-panel, rgba(16, 22, 28, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 12px rgba(45, 212, 191, 0.2);
+  z-index: 100;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, opacity 0.2s ease;
+  backdrop-filter: blur(8px);
+}
+.chat-scroll-bottom-btn:hover {
+  transform: translateY(-3px) scale(1.06);
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 16px var(--accent-glow);
+}
+.chat-scroll-bottom-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ── Header State Badge ── */
+.header-state-badge {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  max-width: 180px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: 6px;
+}
+.header-state-badge[data-active="true"] {
+  display: inline-flex;
+}
+.header-state-badge:hover {
+  background: rgba(45, 212, 191, 0.12);
+  border-color: var(--accent-border, rgba(45, 212, 191, 0.4));
+  color: var(--accent);
+}
+.header-state-badge-icon {
+  font-size: 11px;
+}
+.header-state-badge-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .gm-block-text p {
@@ -10194,23 +10772,44 @@ dialog::backdrop {
 
 @media (max-width: 768px) {
   .chat-header {
-    padding: 8px 10px;
-    gap: 6px;
+    padding: 8px 12px;
+    gap: 8px;
     min-height: 58px;
+    flex-wrap: wrap;
+    row-gap: 8px;
   }
-  .chat-header-left,
+  .chat-header-left {
+    min-width: 0;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
   .chat-character-identity {
     min-width: 0;
-    flex: 1;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
   .chat-char-titles {
     min-width: 0;
+    flex: 1 1 auto;
   }
   .chat-char-titles h2 {
-    max-width: 38vw;
+    max-width: none;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-size: 15px;
+  }
+  .toggle-sidebar-left-btn {
+    min-width: 38px;
+    min-height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
   }
   .chat-badges-wrap,
   #statusText,
@@ -10219,13 +10818,11 @@ dialog::backdrop {
   #adoptActiveCharAsPersonaBtn {
     display: none !important;
   }
-  .chat-header {
-    flex-wrap: wrap;
-    row-gap: 8px;
-  }
   .chat-header-right {
     order: 3;
     width: 100%;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
     gap: 8px;
   }

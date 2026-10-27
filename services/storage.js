@@ -293,7 +293,18 @@ export function replaceLastAssistantMessage(chats, characterId, content) {
   if (chat[lastIdx].role !== "assistant") {
     return chats;
   }
-  chat[lastIdx] = { ...chat[lastIdx], content };
+  const existingMsg = chat[lastIdx];
+  let updatedMsg = { ...existingMsg, content };
+  if (Array.isArray(existingMsg.swipes) && existingMsg.swipes.length > 0) {
+    const sIdx = (typeof existingMsg.swipeIndex === "number" && existingMsg.swipeIndex >= 0 && existingMsg.swipeIndex < existingMsg.swipes.length)
+      ? existingMsg.swipeIndex
+      : (existingMsg.swipes.length - 1);
+    const updatedSwipes = [...existingMsg.swipes];
+    updatedSwipes[sIdx] = content;
+    updatedMsg.swipes = updatedSwipes;
+    updatedMsg.swipeIndex = sIdx;
+  }
+  chat[lastIdx] = updatedMsg;
   return { ...chats, [characterId]: chat };
 }
 
@@ -718,6 +729,28 @@ export function loadDialogueColorTheme() {
 
 export function saveDialogueColorTheme(val) {
   safeLocalStorageSet(DIALOGUE_COLOR_THEME_KEY, String(val));
+}
+
+const READER_SETTINGS_KEY = "heaven_reader_settings_v1";
+
+export function loadReaderSettings() {
+  const cached = safeJsonParse(localStorage.getItem(READER_SETTINGS_KEY), null);
+  if (cached && typeof cached === "object") {
+    return {
+      fontSize: typeof cached.fontSize === "number" ? cached.fontSize : 15.5,
+      lineHeight: typeof cached.lineHeight === "number" ? cached.lineHeight : 1.74,
+      maxWidth: typeof cached.maxWidth === "string" ? cached.maxWidth : "860px"
+    };
+  }
+  return {
+    fontSize: loadChatFontSize(),
+    lineHeight: 1.74,
+    maxWidth: "860px"
+  };
+}
+
+export function saveReaderSettings(settings) {
+  safeLocalStorageSet(READER_SETTINGS_KEY, JSON.stringify(settings));
 }
 
 const CHAT_SUMMARIES_KEY = "openrouter_chat_summaries_v1";
