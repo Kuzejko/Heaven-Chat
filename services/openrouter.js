@@ -381,7 +381,7 @@ async function withRetry(requestFn, options = {}) {
         }
 
         const remainingSec = Math.ceil(remainingMs / 1000);
-        const retryStatusText = `⏳ Лимит 429 • Повтор через ${remainingSec}с (${attempt}/${maxRetries})`;
+        const retryStatusText = `Лимит 429 • Повтор через ${remainingSec}с (${attempt}/${maxRetries})`;
         
         if (typeof onRetry === "function") {
           try {

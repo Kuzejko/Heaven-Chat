@@ -6179,6 +6179,29 @@ function attachEvents() {
     });
   }
 
+  const charMoreBtn = dom.charMoreActionsBtn || document.getElementById("charMoreActionsBtn");
+  const charDropdown = dom.charActionsDropdown || document.getElementById("charActionsDropdown");
+
+  if (charMoreBtn && charDropdown) {
+    charMoreBtn.onclick = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      charDropdown.classList.toggle("active");
+    };
+
+    document.addEventListener("click", (e) => {
+      if (!charDropdown.contains(e.target) && !charMoreBtn.contains(e.target)) {
+        charDropdown.classList.remove("active");
+      }
+    });
+
+    charDropdown.addEventListener("click", (e) => {
+      if (e.target.closest(".dropdown-item")) {
+        charDropdown.classList.remove("active");
+      }
+    });
+  }
+
   if (dom.clearEventLogBtn) {
     dom.clearEventLogBtn.addEventListener("click", () => {
       const character = getActiveCharacter();
@@ -6947,10 +6970,14 @@ function updateStatsUI(lastPromptTokens = null, lastCompletionTokens = null, las
   if (dom.headerTokenBadge) {
     if (promptCount !== null && promptCount !== undefined) {
       dom.headerTokenBadge.style.display = "inline-flex";
-      const costBadge = costVal ? ` • $${costVal.toFixed(4)}` : "";
-      dom.headerTokenBadge.innerHTML = `<svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>${promptCount.toLocaleString()} токенов${costBadge}</span>`;
+      const shortCount = promptCount >= 1000
+        ? `${(promptCount / 1000).toFixed(promptCount >= 10000 ? 0 : 1)}k`
+        : promptCount.toLocaleString();
+      const shortCost = costVal ? ` · $${costVal.toFixed(4)}` : "";
+
+      dom.headerTokenBadge.innerHTML = `<svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>${shortCount} ток.${shortCost}</span>`;
       dom.headerTokenBadge.title = isEstimated
-        ? `Текущий расчетный контекст: ~${promptCount.toLocaleString()} токенов. Нажмите, чтобы открыть подробную статистику.`
+        ? `Текущий расчетный контекст: ~${promptCount.toLocaleString()} токенов${costVal ? ' ($' + costVal.toFixed(4) + ')' : ''}. Нажмите, чтобы открыть подробную статистику.`
         : `Последний промпт: ${promptCount.toLocaleString()} токенов | Ответ: ${(compCount || 0).toLocaleString()} токенов | Стоимость хода: $${(costVal || 0).toFixed(6)}. Нажмите для подробной статистики.`;
     } else {
       dom.headerTokenBadge.style.display = "none";

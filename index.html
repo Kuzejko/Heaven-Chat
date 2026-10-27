@@ -35,75 +35,59 @@
           <button id="tabCharactersBtn" class="sidebar-tab active">Characters</button>
           <button id="tabGmScenesBtn" class="sidebar-tab">GM Scenes</button>
         </div>
-
-        <!-- Quick Model Switcher in Left Sidebar -->
-        <div class="sidebar-model-switcher" id="sidebarModelSwitcher">
-          <div class="sidebar-model-header">
-            <span class="sidebar-model-title" title="Быстрый выбор модели">
-              <svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-              Модель
-            </span>
-            <button type="button" id="sidebarModelActiveName" class="sidebar-model-active-name" title="Нажмите, чтобы открыть полные настройки моделей">GLM 5.3 Flash</button>
-          </div>
-          <div class="sidebar-model-pills">
-            <button type="button" id="quickModelBtnGlm52" class="sidebar-model-pill" data-model="z-ai/glm-5.2" title="Переключить на GLM 5.2 (z-ai/glm-5.2)">
-              <span class="pill-dot"></span>
-              <span class="pill-name">GLM 5.2</span>
-            </button>
-            <button type="button" id="quickModelBtnGlm53Flash" class="sidebar-model-pill" data-model="z-ai/glm-5.3-flash" title="Переключить на GLM 5.3 Flash (z-ai/glm-5.3-flash)">
-              <span class="pill-dot"></span>
-              <span class="pill-name">GLM 5.3 Flash</span>
-            </button>
-          </div>
-        </div>
         
         <div id="charactersSection" style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
           <div class="sidebar-header">
-            <div class="sidebar-header-actions">
-              <button id="openCatalogBtn" title="🧭 Каталог персонажей (Chub AI & Рекомендуемые)">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+            <div class="sidebar-unified-toolbar">
+              <button type="button" id="openCatalogBannerBtn" class="sidebar-catalog-chip-btn" title="Каталог персонажей Chub AI">
+                <svg class="feather" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+                <span>Chub AI</span>
               </button>
-              <button id="quickCreateCharBtn" title="Create Character">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </button>
-              <button id="quickImportCharBtn" title="Импорт карточки персонажа (Chub AI / PNG / JSON)">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              </button>
-              <input type="file" id="characterCardFileInput" accept=".png,.json,.card,.chub,image/png,application/json" style="display: none;" />
-              <button id="debugMenuBtn" title="Debug Info">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-              </button>
-              <button id="openPersonaBtn" title="User Personas">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              </button>
-              <button id="openSettingsBtn" title="Settings">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-              </button>
+              <div class="sidebar-header-actions">
+                <button id="quickCreateCharBtn" title="Создать персонажа">
+                  <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <button id="quickImportCharBtn" title="Импорт карточки персонажа (PNG / JSON)">
+                  <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </button>
+                <input type="file" id="characterCardFileInput" accept=".png,.json,.card,.chub,image/png,application/json" style="display: none;" />
+                <button id="openPersonaBtn" title="Персоны пользователя">
+                  <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                </button>
+                <button id="openSettingsBtn" title="Настройки">
+                  <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+                <button id="debugMenuBtn" title="Debug Info">
+                  <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+                </button>
+              </div>
             </div>
           </div>
-          <div class="sidebar-catalog-banner-wrap" style="padding: 2px 16px 6px 16px;">
-            <button type="button" id="openCatalogBannerBtn" class="sidebar-catalog-banner-btn" title="Открыть каталог персонажей">
-              <span class="banner-icon">🧭</span>
-              <span class="banner-text">Каталог персонажей</span>
-              <span class="banner-badge">Chub AI</span>
-            </button>
-          </div>
-          <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 9px; margin-bottom: 6px;">
-            <input id="characterSearchInput" type="search" placeholder="Search..." style="margin: 0 16px; width: calc(100% - 32px); box-sizing: border-box;" />
+          <div class="sidebar-search-box">
+            <div class="sidebar-search-input-wrap">
+              <svg class="feather search-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input id="characterSearchInput" type="search" placeholder="Поиск персонажей..." autocomplete="off" />
+            </div>
           </div>
           <ul id="characterList" class="character-list" style="flex: 1; overflow-y: auto;"></ul>
         </div>
 
         <div id="gmScenesSection" style="display: none; flex-direction: column; flex: 1; overflow: hidden;">
           <div class="sidebar-header">
-            <div class="sidebar-header-actions">
-              <button id="createGmSceneBtn" title="Create GM Scene">
-                <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </button>
+            <div class="sidebar-unified-toolbar">
+              <span class="sidebar-section-title">Сцены GM</span>
+              <div class="sidebar-header-actions">
+                <button id="createGmSceneBtn" title="Создать сцену GM">
+                  <svg class="feather" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+              </div>
             </div>
           </div>
-          <div style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 9px; margin-bottom: 6px;">
-            <input id="gmSceneSearchInput" type="search" placeholder="Search scenes..." style="margin: 0 16px; width: calc(100% - 32px); box-sizing: border-box;" />
+          <div class="sidebar-search-box">
+            <div class="sidebar-search-input-wrap">
+              <svg class="feather search-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input id="gmSceneSearchInput" type="search" placeholder="Поиск сцен..." autocomplete="off" />
+            </div>
           </div>
           <ul id="gmSceneList" class="character-list" style="flex: 1; overflow-y: auto;"></ul>
         </div>
@@ -123,12 +107,30 @@
                 <h2 id="activeCharacterName">No character</h2>
               </div>
               <div id="headerStateBadge" class="header-state-badge" style="display: none;" title="Текущее состояние персонажа и сцены">
-                <span class="header-state-badge-icon">📍</span>
+                <span class="header-state-badge-icon">
+                  <svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                </span>
                 <span id="headerStateBadgeText" class="header-state-badge-text"></span>
               </div>
-              <button id="editCharacterBtn" class="chat-header-btn btn-icon-only" title="Edit Character"><svg class="feather" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg></button>
-              <button id="chatHeaderEnhanceBtn" class="chat-header-btn btn-icon-only" title="✨ Улучшить персонажа через ИИ (с режимом 18+)"><svg class="feather" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg></button>
-              <button id="adoptActiveCharAsPersonaBtn" class="chat-header-btn btn-icon-only" title="🎭 Играть за этого персонажа (Взять как свою персону)"><svg class="feather" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></button>
+              <div class="char-actions-menu-wrap" id="charActionsMenuWrap">
+                <button id="charMoreActionsBtn" class="chat-header-btn btn-icon-only" type="button" title="Действия с персонажем">
+                  <svg class="feather" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>
+                </button>
+                <div id="charActionsDropdown" class="chat-actions-dropdown char-actions-dropdown">
+                  <button id="editCharacterBtn" class="dropdown-item" type="button" title="Edit Character">
+                    <svg class="feather" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path><path d="m15 5 4 4"></path></svg>
+                    <span>Редактировать</span>
+                  </button>
+                  <button id="chatHeaderEnhanceBtn" class="dropdown-item" type="button" title="✨ Улучшить персонажа через ИИ (с режимом 18+)">
+                    <svg class="feather" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>Улучшить через ИИ</span>
+                  </button>
+                  <button id="adoptActiveCharAsPersonaBtn" class="dropdown-item" type="button" title="🎭 Играть за этого персонажа (Взять как свою персону)">
+                    <svg class="feather" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Взять как персону</span>
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="chat-badges-wrap">
               <span id="activeModelBadge" class="model-badge" title="Active Model"></span>
@@ -136,7 +138,7 @@
           </div>
 
           <div class="chat-header-right">
-            <span id="statusText" class="status-text"></span>
+            <span id="statusText" class="status-text" style="display: none;"></span>
             <button id="headerTokenBadge" type="button" class="header-token-badge" style="display: none;" title="Размер контекста и токенов последнего ответа. Нажмите для подробной статистики"></button>
             
             <div id="chatSelectorContainer" class="chat-selector-container">
@@ -145,8 +147,8 @@
 
               <!-- Reader Comfort Settings (Aa) -->
               <div class="reader-settings-wrap" id="readerSettingsWrap">
-                <button id="readerSettingsBtn" class="chat-header-btn btn-icon-only" type="button" title="Настройки комфорта чтения (Aa)">
-                  <span class="reader-btn-text">Aa</span>
+                <button id="readerSettingsBtn" class="chat-header-btn btn-icon-only" type="button" title="Настройки комфорта чтения">
+                  <svg class="feather" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>
                 </button>
                 <div id="readerSettingsPopover" class="reader-settings-popover" style="display: none;">
                   <div class="reader-popover-header">
@@ -336,15 +338,21 @@
         <!-- Segmented Tab Bar -->
         <div class="sidebar-right-tabs" id="sidebarRightTabs">
           <button type="button" class="sidebar-tab-btn active" data-tab="memory" title="Живой Кодекс и память сюжета">
-            <span class="tab-icon">🧠</span>
+            <span class="tab-icon">
+              <svg class="feather" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+            </span>
             <span class="tab-label">Кодекс</span>
           </button>
           <button type="button" class="sidebar-tab-btn" data-tab="character" title="Состояние и настроение героя">
-            <span class="tab-icon">👤</span>
+            <span class="tab-icon">
+              <svg class="feather" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </span>
             <span class="tab-label">Герой</span>
           </button>
           <button type="button" class="sidebar-tab-btn" data-tab="stats" title="Токены, модель и журнал событий">
-            <span class="tab-icon">📊</span>
+            <span class="tab-icon">
+              <svg class="feather" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </span>
             <span class="tab-label">Сессия</span>
           </button>
         </div>

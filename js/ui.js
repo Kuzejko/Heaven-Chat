@@ -263,6 +263,9 @@ export const dom = {
   sidebarLeftBackdrop: document.getElementById("sidebarLeftBackdrop"),
   sidebarLeft: document.getElementById("sidebarLeft"),
   quickCreateCharBtn: document.getElementById("quickCreateCharBtn"),
+  charActionsMenuWrap: document.getElementById("charActionsMenuWrap"),
+  charMoreActionsBtn: document.getElementById("charMoreActionsBtn"),
+  charActionsDropdown: document.getElementById("charActionsDropdown"),
   editCharacterBtn: document.getElementById("editCharacterBtn"),
   chatHeaderEnhanceBtn: document.getElementById("chatHeaderEnhanceBtn"),
   adminWizardView: document.getElementById("adminWizardView"),
@@ -721,31 +724,37 @@ function startInlineEdit(article, msgIndex, message, dialogueEl, parsed) {
 let statusTimeout = null;
 export function setStatus(text, autoClear = true) {
   if (dom.statusText) {
-    dom.statusText.textContent = text;
-    // The badge is width-capped so it cannot push the character name out of the
-    // header; keep the full text reachable on hover.
-    dom.statusText.title = text || "";
     if (statusTimeout) {
       clearTimeout(statusTimeout);
       statusTimeout = null;
     }
 
     if (text) {
-      dom.statusText.style.display = "inline-block";
-      if (text.includes("429") || text.includes("Лимит") || text.includes("Повтор") || text.includes("Ошибка") || text.includes("Error")) {
+      const isRetry = text.includes("429") || text.includes("Лимит") || text.includes("Повтор") || text.includes("Ошибка") || text.includes("Error");
+      const iconSvg = isRetry
+        ? `<svg class="feather" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+        : `<svg class="feather" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`;
+
+      const cleanText = text.replace(/^[⏳⚡📍✨💬💭🎭👥⚠️❌✅\s]+/, "").trim();
+      dom.statusText.innerHTML = `${iconSvg}<span>${cleanText || text}</span>`;
+      dom.statusText.title = text || "";
+      dom.statusText.style.display = "inline-flex";
+
+      if (isRetry) {
         dom.statusText.classList.add("retry-active");
       } else {
         dom.statusText.classList.remove("retry-active");
         if (autoClear) {
           statusTimeout = setTimeout(() => {
             if (dom.statusText && !dom.statusText.classList.contains("retry-active")) {
-              dom.statusText.textContent = "";
+              dom.statusText.innerHTML = "";
               dom.statusText.style.display = "none";
             }
           }, 3500);
         }
       }
     } else {
+      dom.statusText.innerHTML = "";
       dom.statusText.style.display = "none";
       dom.statusText.classList.remove("retry-active");
     }
@@ -1131,7 +1140,13 @@ export function updateHeaderStateBadge() {
 
   const iconEl = dom.headerStateBadge.querySelector(".header-state-badge-icon");
   if (iconEl) {
-    iconEl.textContent = locEntry ? "📍" : (moodEntry ? "💭" : "✨");
+    if (locEntry) {
+      iconEl.innerHTML = `<svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+    } else if (moodEntry) {
+      iconEl.innerHTML = `<svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`;
+    } else {
+      iconEl.innerHTML = `<svg class="feather" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`;
+    }
   }
   dom.headerStateBadgeText.textContent = valStr;
   dom.headerStateBadge.title = `Состояние: ${key} = ${valStr} (нажмите для подробностей)`;
@@ -2296,6 +2311,7 @@ export function renderMessages() {
   if (!activeId) {
     dom.activeCharacterName.textContent = isGm ? "No Scene Selected" : "No character selected";
     if (dom.headerCharAvatarWrap) dom.headerCharAvatarWrap.style.display = "none";
+    if (dom.charActionsMenuWrap) dom.charActionsMenuWrap.style.display = "none";
     if (dom.editCharacterBtn) dom.editCharacterBtn.style.display = "none";
     if (dom.chatHeaderEnhanceBtn) dom.chatHeaderEnhanceBtn.style.display = "none";
     if (dom.duoChatBtn) dom.duoChatBtn.style.display = "none";
@@ -2412,6 +2428,7 @@ export function renderMessages() {
     if (!character) {
       dom.activeCharacterName.textContent = "No character selected";
       if (dom.headerCharAvatarWrap) dom.headerCharAvatarWrap.style.display = "none";
+      if (dom.charActionsMenuWrap) dom.charActionsMenuWrap.style.display = "none";
       if (dom.editCharacterBtn) dom.editCharacterBtn.style.display = "none";
       if (dom.chatHeaderEnhanceBtn) dom.chatHeaderEnhanceBtn.style.display = "none";
       if (dom.duoChatBtn) dom.duoChatBtn.style.display = "none";
@@ -2437,6 +2454,7 @@ export function renderMessages() {
         if (dom.headerCharAvatarImg) dom.headerCharAvatarImg.style.display = "none";
       }
     }
+    if (dom.charActionsMenuWrap) dom.charActionsMenuWrap.style.display = "inline-flex";
     if (dom.adoptActiveCharAsPersonaBtn) dom.adoptActiveCharAsPersonaBtn.style.display = "inline-flex";
     if (dom.editCharacterBtn) {
       dom.editCharacterBtn.style.display = "inline-block";
