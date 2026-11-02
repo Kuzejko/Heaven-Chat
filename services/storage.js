@@ -218,6 +218,54 @@ export function getStageBehavior(stage) {
   return found ? found.behavior : STAGE_THRESHOLDS[0].behavior;
 }
 
+export const POSITIVE_RELATIONSHIP_KEYS = ["affinity", "trust", "love", "affection", "intimacy", "sympathy", "respect"];
+
+export function calculateRelationshipStage(currentStates, coreStates = [], isDuoSecondary = false) {
+  if (!currentStates || typeof currentStates !== "object") return "Stranger";
+  if (currentStates.manualRelationshipStage) {
+    return currentStates.relationshipStage || "Stranger";
+  }
+
+  const prefix = isDuoSecondary ? "duo_" : "";
+  const positiveValues = [];
+
+  for (const k of POSITIVE_RELATIONSHIP_KEYS) {
+    const keyWithPrefix = `${prefix}${k}`;
+    if (typeof currentStates[keyWithPrefix] === "number") {
+      positiveValues.push(currentStates[keyWithPrefix]);
+    } else if (!isDuoSecondary && typeof currentStates[k] === "number") {
+      positiveValues.push(currentStates[k]);
+    }
+  }
+
+  let effectiveScore = null;
+  if (positiveValues.length > 0) {
+    effectiveScore = positiveValues.reduce((sum, v) => sum + v, 0) / positiveValues.length;
+  } else if (Array.isArray(coreStates) && coreStates.length > 0) {
+    const firstKey = coreStates[0]?.key;
+    if (firstKey) {
+      const keyWithPrefix = `${prefix}${firstKey}`;
+      const val = typeof currentStates[keyWithPrefix] === "number"
+        ? currentStates[keyWithPrefix]
+        : (typeof currentStates[firstKey] === "number" ? currentStates[firstKey] : coreStates[0].defaultValue);
+      if (typeof val === "number") {
+        effectiveScore = val;
+      }
+    }
+  }
+
+  if (typeof effectiveScore !== "number" || isNaN(effectiveScore)) {
+    return currentStates.relationshipStage || "Stranger";
+  }
+
+  for (const t of STAGE_THRESHOLDS) {
+    if (effectiveScore <= t.max) {
+      return t.stage;
+    }
+  }
+  return STAGE_THRESHOLDS[STAGE_THRESHOLDS.length - 1].stage;
+}
+
 export const BUILTIN_STATES = {
   mood: { 
     type: "mood", default: "neutral", 
@@ -255,10 +303,13 @@ function normalizeCharacter(character) {
   };
 }
 
-export function loadCharacters(defaultCharacters) {
+export function loadCharacters(defaultCharacters = []) {
   const stored = safeJsonParse(localStorage.getItem(CHARACTERS_KEY), null);
   if (Array.isArray(stored) && stored.length > 0) {
     return stored.map(normalizeCharacter);
+  }
+  if (!Array.isArray(defaultCharacters) || defaultCharacters.length === 0) {
+    return [];
   }
   const normalizedDefaults = defaultCharacters.map(normalizeCharacter);
   safeLocalStorageSet(CHARACTERS_KEY, JSON.stringify(normalizedDefaults));
@@ -280,7 +331,22 @@ export function saveChats(chats) {
 
 export function appendMessage(chats, characterId, message) {
   const chat = Array.isArray(chats[characterId]) ? chats[characterId] : [];
-  const nextChat = [...chat, message].slice(-CHAT_HISTORY_LIMIT);
+  const prevMaxSeq = chat.length > 0 ? (chat[chat.length - 1].seq || chat.length) : 0;
+  if (message && (message.seq === undefined || message.seq === null)) {
+    message.seq = prevMaxSeq + 1;
+  }
+  const fullChat = [...chat, message];
+  if (fullChat.length > CHAT_HISTORY_LIMIT) {
+    const evicted = fullChat.slice(0, fullChat.length - CHAT_HISTORY_LIMIT);
+    let resolvedCharName = null;
+    try {
+      const chars = loadCharacters();
+      const found = (Array.isArray(chars) ? chars : []).find(c => c.id === characterId);
+      if (found && found.name) resolvedCharName = found.name;
+    } catch (_) {}
+    appendArchivedRagChunks(characterId, evicted, resolvedCharName);
+  }
+  const nextChat = fullChat.slice(-CHAT_HISTORY_LIMIT);
   return { ...chats, [characterId]: nextChat };
 }
 
@@ -311,6 +377,7 @@ export function replaceLastAssistantMessage(chats, characterId, content) {
 export function deleteCharacterChats(chats, characterId) {
   const next = { ...chats };
   delete next[characterId];
+  clearArchivedRagChunks(characterId);
   return next;
 }
 
@@ -900,6 +967,129 @@ export function clearAllStorageData() {
   if (typeof localStorage !== "undefined") {
     localStorage.clear();
   }
+}
+
+// ── Lightweight Archived RAG Chunks Storage ──
+const ARCHIVED_RAG_CHUNKS_KEY = "openrouter_archived_rag_chunks_v1";
+export const MAX_ARCHIVED_CHUNKS_PER_CHAT = 300;
+
+export function loadArchivedRagChunks() {
+  if (typeof localStorage === "undefined") return {};
+  const cached = safeJsonParse(localStorage.getItem(ARCHIVED_RAG_CHUNKS_KEY), {});
+  return cached && typeof cached === "object" ? cached : {};
+}
+
+export function saveArchivedRagChunks(allChunks) {
+  safeLocalStorageSet(ARCHIVED_RAG_CHUNKS_KEY, JSON.stringify(allChunks));
+}
+
+export function getArchivedRagChunks(chatId) {
+  if (!chatId) return [];
+  const all = loadArchivedRagChunks();
+  const list = all[chatId];
+  return Array.isArray(list) ? list : [];
+}
+
+export function clearArchivedRagChunks(chatId) {
+  if (!chatId) return;
+  const all = loadArchivedRagChunks();
+  delete all[chatId];
+  saveArchivedRagChunks(all);
+}
+
+export function pruneArchivedRagChunks(chatId, maxSeq) {
+  if (!chatId || typeof maxSeq !== "number") return;
+  const all = loadArchivedRagChunks();
+  const list = all[chatId];
+  if (!Array.isArray(list)) return;
+  all[chatId] = list.filter(c => typeof c.messageIndex === "number" && c.messageIndex <= maxSeq);
+  saveArchivedRagChunks(all);
+}
+
+export function appendArchivedRagChunks(chatId, messages, defaultCharacterName = null) {
+  if (!chatId || !Array.isArray(messages) || messages.length === 0) return;
+  const all = loadArchivedRagChunks();
+  const existing = Array.isArray(all[chatId]) ? [...all[chatId]] : [];
+
+  let fallbackCharName = defaultCharacterName;
+  if (!fallbackCharName) {
+    try {
+      const chars = loadCharacters();
+      const found = (Array.isArray(chars) ? chars : []).find(c => c.id === chatId);
+      if (found && found.name) fallbackCharName = found.name;
+    } catch (_) {}
+  }
+
+  const activePersona = getActivePersona();
+  const userName = (activePersona && activePersona.userName) ? activePersona.userName : "User";
+
+  for (const msg of messages) {
+    if (!msg) continue;
+    if (typeof msg.text === "string" && typeof msg.messageIndex === "number") {
+      existing.push({ text: msg.text, messageIndex: msg.messageIndex });
+      continue;
+    }
+
+    const role = msg.role || "user";
+    const seq = typeof msg.seq === "number" ? msg.seq : (existing.length + 1);
+    const cleanContent = (msg.content || "")
+      .replace(/<thought[\s\S]*?<\/thought>/gi, "")
+      .replace(/<thought[\s\S]*/gi, "")
+      .trim();
+    if (!cleanContent) continue;
+
+    let speaker = userName;
+    if (role !== "user") {
+      if (msg.characterName) {
+        speaker = msg.characterName;
+      } else if (msg.characterId) {
+        try {
+          const chars = loadCharacters();
+          const c = (Array.isArray(chars) ? chars : []).find(item => item.id === msg.characterId);
+          speaker = c?.name || fallbackCharName || "Character";
+        } catch (_) {
+          speaker = fallbackCharName || "Character";
+        }
+      } else {
+        speaker = fallbackCharName || "Character";
+      }
+    }
+    const line = `${speaker}: ${cleanContent}`;
+
+    const lastChunk = existing.length > 0 ? existing[existing.length - 1] : null;
+    const isLastChunkJustUser = lastChunk && (
+      lastChunk._isPendingUser ||
+      (!lastChunk.text.includes("\n") && (lastChunk.text.startsWith(`${userName}:`) || lastChunk.text.startsWith("User:")))
+    );
+    if (isLastChunkJustUser && role === "assistant") {
+      lastChunk.text = `${lastChunk.text}\n${line}`;
+      lastChunk.endMessageIndex = seq;
+      delete lastChunk._isPendingUser;
+    } else {
+      existing.push({
+        text: line,
+        messageIndex: seq,
+        ...(role === "user" ? { _isPendingUser: true } : {})
+      });
+    }
+  }
+
+  const sanitized = existing.map(c => {
+    const { _isPendingUser, ...rest } = c;
+    return rest;
+  }).slice(-MAX_ARCHIVED_CHUNKS_PER_CHAT);
+
+  all[chatId] = sanitized;
+  saveArchivedRagChunks(all);
+}
+
+/**
+ * Returns the absolute total message count for a chat, using monotonically growing message.seq.
+ */
+export function getChatTotalMessageCount(chat) {
+  if (!Array.isArray(chat) || chat.length === 0) return 0;
+  const lastMsg = chat[chat.length - 1];
+  return (lastMsg && typeof lastMsg.seq === "number") ? lastMsg.seq : chat.length;
 }
 
 

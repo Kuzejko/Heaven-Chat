@@ -260,8 +260,8 @@ const cappedEvents = smartMergeSessionMemory(createDefaultSessionMemory(), { key
 assert.strictEqual(cappedEvents.key_events.length, 30, "Stored key events must be capped at 30 to prevent token explosion");
 const promptMd = formatMemoryToMarkdown(cappedEvents);
 assert.ok(promptMd.includes("Событие 69"), "Newest event must be in prompt");
-assert.ok(promptMd.includes("Событие 60"), "Prompt must include the last 10 events");
-assert.ok(!promptMd.includes("Событие 59"), "Prompt must not include older events");
+assert.ok(promptMd.includes("Событие 64"), "Prompt must include the last 6 events");
+assert.ok(!promptMd.includes("Событие 63"), "Prompt must not include older events");
 console.log("✔ Test 6 passed: resolved threads removed, lists and events capped.");
 
 // -------------------------------------------------------------

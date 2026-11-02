@@ -221,12 +221,14 @@ async function handleNordrouterEvaluateProxy(req, res) {
   });
 }
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   const url = `http://localhost:${PORT}`;
   console.log(`Server is running at ${url}`);
   console.log('Press Ctrl+C to stop the server.');
   
-  // Auto-open browser
-  const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
-  exec(`${startCmd} ${url}`);
+  // Auto-open browser only in desktop environments
+  if (!process.env.HEADLESS && (process.platform !== 'linux' || process.env.DISPLAY || process.env.WAYLAND_DISPLAY)) {
+    const startCmd = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
+    exec(`${startCmd} ${url}`, () => {});
+  }
 });

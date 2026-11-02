@@ -1,9 +1,14 @@
 import { state } from "../js/state.js";
-import { getActivePersona } from "./storage.js";
+import { getActivePersona, getArchivedRagChunks, getSessionMemory } from "./storage.js";
 import { rerankMemoriesWithJev } from "./jevService.js";
+import { stemWord } from "../js/stemmer.js";
 
 // RAG Index Cache: chatId -> { chunks: Array<{ text, messageIndex, tokens, wordCount }>, avgLength, signature }
 const ragIndexCache = new Map();
+
+// In-memory cache for async RAG results: key (${chatId}|${signature}|${query}) -> Array<memory>
+const ragJevResultCache = new Map();
+const MAX_RAG_RESULT_CACHE_SIZE = 10;
 
 const STOP_WORDS = new Set([
   "и", "в", "во", "не", "что", "он", "на", "я", "с", "со", "как", "а", "то", "все", "она", "так",
@@ -29,22 +34,18 @@ const RAG_CANDIDATE_POOL = 6;
 
 /**
  * Tokenizes Russian & English text into normalized word tokens.
- * Drops stop words and applies light stemming (e.g. "амулет", "амулета", "амулетом" -> "амулет").
+ * Drops stop words, normalizes 'ё' -> 'е', and applies Snowball/Porter stemming.
  */
 function tokenize(text) {
   if (!text) return [];
   const words = text
     .toLowerCase()
+    .replace(/ё/g, "е")
     .replace(/[^\w\u0400-\u04FF\s]/g, " ")
     .split(/\s+/)
-    .filter(w => w.length > 2 && !STOP_WORDS.has(w));
+    .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
 
-  return words.map(w => {
-    if (/[\u0400-\u04FF]/.test(w)) {
-      return w.replace(/(ами|ями|ов|ев|ей|ам|ям|ах|ях|ом|ем|ой|ей|у|ю|а|я|е|и|ы|о)$/i, "");
-    }
-    return w.replace(/(ing|ed|es|s)$/i, "");
-  }).filter(w => w.length >= 2);
+  return words.map(w => stemWord(w)).filter(w => w && w.length >= 2);
 }
 
 /**
@@ -130,25 +131,31 @@ function getIndexableMessages(chat) {
 }
 
 function indexSignature(chat, chatId) {
-  return `${chatSignature(chat)}|${getRawWindowSize()}|${getUserName()}|${resolveOwnerName(chatId)}`;
+  const archCount = (getArchivedRagChunks(chatId) || []).length;
+  const loc = (getSessionMemory(chatId)?.setting?.location || "").trim();
+  return `${chatSignature(chat)}|${getRawWindowSize()}|${getUserName()}|${resolveOwnerName(chatId)}|arch:${archCount}|loc:${loc}`;
 }
 
 /**
  * Builds or retrieves the RAG index for a specific chat.
- * Indexes only messages outside the raw history window, as user+assistant pairs.
+ * Indexes archived chunks from evicted history as well as messages outside the raw history window.
  */
 export function buildRagIndex(chatId) {
   const chat = state.chats?.[chatId] || [];
-  if (chat.length === 0) {
+  const archivedChunks = getArchivedRagChunks(chatId) || [];
+  if (chat.length === 0 && archivedChunks.length === 0) {
     ragIndexCache.delete(chatId);
     return null;
   }
 
   const pastMessages = getIndexableMessages(chat);
-  if (pastMessages.length === 0) {
+  if (pastMessages.length === 0 && archivedChunks.length === 0) {
     ragIndexCache.delete(chatId);
     return null;
   }
+
+  const sessionMem = getSessionMemory(chatId);
+  const locationTag = (sessionMem?.setting?.location || "").trim();
 
   const userName = getUserName();
   const ownerName = resolveOwnerName(chatId);
@@ -156,12 +163,24 @@ export function buildRagIndex(chatId) {
   let totalWords = 0;
 
   const pushChunk = (text, messageIndex) => {
-    const tokens = tokenize(text);
+    let finalText = text;
+    if (locationTag && !finalText.startsWith("[")) {
+      finalText = `[Локация: ${locationTag}]\n${finalText}`;
+    }
+    const tokens = tokenize(finalText);
     if (tokens.length === 0) return;
-    chunks.push({ text, messageIndex, tokens, wordCount: tokens.length });
+    chunks.push({ text: finalText, messageIndex, tokens, wordCount: tokens.length });
     totalWords += tokens.length;
   };
 
+  // 1. Index archived pairs from evicted history
+  for (const ac of archivedChunks) {
+    if (ac && ac.text) {
+      pushChunk(ac.text, ac.messageIndex || 0);
+    }
+  }
+
+  // 2. Index messages from current active history outside the raw window
   for (let i = 0; i < pastMessages.length; i++) {
     const msg = pastMessages[i];
     const first = formatMessageLine(msg, ownerName, userName);
@@ -169,6 +188,7 @@ export function buildRagIndex(chatId) {
 
     let text = first;
     let end = i;
+    const messageIdx = (typeof msg.seq === "number") ? msg.seq : (i + 1);
     const next = pastMessages[i + 1];
     if (msg.role === "user" && next && next.role === "assistant") {
       const second = formatMessageLine(next, ownerName, userName);
@@ -178,7 +198,7 @@ export function buildRagIndex(chatId) {
       }
     }
 
-    pushChunk(text, i + 1);
+    pushChunk(text, messageIdx);
     i = end;
   }
 
@@ -217,10 +237,12 @@ export function buildRagIndex(chatId) {
 }
 
 /**
- * Fast candidate retrieval using BM25 scoring over indexed chunks.
+ * Fast candidate retrieval using weighted BM25 scoring over indexed chunks.
+ * Tokens from userInput are boosted x2.5; recent history tokens have weight x1.0.
+ * A +25% bonus is awarded if the chunk contains bigrams from userInput or rare proper nouns.
  * Returns up to `limit` candidates for reranking.
  */
-export function getCandidateMemories(chatId, queryText, limit = 6) {
+export function getCandidateMemories(chatId, queryText, limit = 6, options = {}) {
   const chat = state.chats?.[chatId] || [];
   let indexData = ragIndexCache.get(chatId);
   if (!indexData || indexData.signature !== indexSignature(chat, chatId)) {
@@ -230,8 +252,58 @@ export function getCandidateMemories(chatId, queryText, limit = 6) {
     return [];
   }
 
-  const queryTokens = tokenize(queryText);
+  // 1. Determine user input and history query
+  let rawUserInput = typeof options.userInput === "string" ? options.userInput : "";
+  if (!rawUserInput) {
+    if (chat.length > 0 && chat[chat.length - 1].role === "user") {
+      rawUserInput = chat[chat.length - 1].content || "";
+    } else if (chat.length >= 2 && chat[chat.length - 2].role === "user") {
+      rawUserInput = chat[chat.length - 2].content || "";
+    } else {
+      rawUserInput = queryText;
+    }
+  }
+
+  // Clean thoughts from history text
+  const cleanThoughts = (t) => (t || "")
+    .replace(/<(think|thought|thinking|reasoning|reflection|details)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, "")
+    .replace(/\[(think|thought|thinking|reasoning|reflection)\][\s\S]*?\[\/\1\]/gi, "");
+
+  const userTokens = tokenize(rawUserInput);
+  const tokenWeights = new Map();
+  userTokens.forEach(t => tokenWeights.set(t, 2.5));
+
+  // Recent history tokens (recentChat.slice(-2))
+  const recentMsgs = chat.slice(-2);
+  const historyText = cleanThoughts(recentMsgs.map(m => m.content).join(" "));
+  const histTokens = tokenize(historyText);
+  histTokens.forEach(t => {
+    if (!tokenWeights.has(t)) {
+      tokenWeights.set(t, 1.0);
+    }
+  });
+
+  // Also include any other tokens from queryText at 1.0
+  const allQueryTokens = tokenize(cleanThoughts(queryText));
+  allQueryTokens.forEach(t => {
+    if (!tokenWeights.has(t)) {
+      tokenWeights.set(t, 1.0);
+    }
+  });
+
+  const queryTokens = Array.from(tokenWeights.keys());
   if (queryTokens.length === 0) return [];
+
+  // Bigram tokens from userInput for bonus check
+  const userBigrams = [];
+  if (userTokens.length >= 2) {
+    for (let i = 0; i < userTokens.length - 1; i++) {
+      userBigrams.push(`${userTokens[i]} ${userTokens[i + 1]}`);
+    }
+  }
+
+  // Proper nouns in rawUserInput: words starting with uppercase
+  const properNouns = (rawUserInput.match(/[А-ЯA-Z][а-яa-z]{2,}/g) || []).map(w => stemWord(w.toLowerCase()));
 
   const k1 = 1.5;
   const b = 0.75;
@@ -260,9 +332,36 @@ export function getCandidateMemories(chatId, queryText, limit = 6) {
       const tf = chunk.tokens.filter(t => t === qToken).length;
       if (tf === 0) continue;
 
+      const weight = tokenWeights.get(qToken) || 1.0;
       const num = tf * (k1 + 1);
       const den = tf + k1 * (1 - b + b * (docLen / avgLength));
-      score += idf * (num / den);
+      score += idf * (num / den) * weight;
+    }
+
+    // +25% bonus if chunk contains 2+ consecutive tokens from userInput (bigram) or rare proper noun
+    let hasBigram = false;
+    if (userBigrams.length > 0 && chunk.tokens.length >= 2) {
+      const chunkTokenStr = chunk.tokens.join(" ");
+      for (const bg of userBigrams) {
+        if (chunkTokenStr.includes(bg)) {
+          hasBigram = true;
+          break;
+        }
+      }
+    }
+
+    let hasProperNoun = false;
+    if (properNouns.length > 0) {
+      for (const pn of properNouns) {
+        if (chunk.tokens.includes(pn)) {
+          hasProperNoun = true;
+          break;
+        }
+      }
+    }
+
+    if (hasBigram || hasProperNoun) {
+      score *= 1.25;
     }
 
     if (score > RAG_MIN_SCORE) {
@@ -275,29 +374,84 @@ export function getCandidateMemories(chatId, queryText, limit = 6) {
 }
 
 /**
+ * Enriches retrieved chunks with preceding turn context if the previous chunk was omitted
+ * but belongs to a neighbouring turn (c.messageIndex - prevChunk.messageIndex <= 2).
+ */
+export function enrichChunksWithPrecedingContext(selectedChunks, allChunks) {
+  if (!Array.isArray(selectedChunks) || selectedChunks.length === 0 || !Array.isArray(allChunks) || allChunks.length === 0) {
+    return selectedChunks;
+  }
+  const selectedSet = new Set(selectedChunks.map(c => c.text));
+
+  return selectedChunks.map(c => {
+    const idx = allChunks.findIndex(item => item === c || item.text === c.text);
+    if (idx > 0) {
+      const prevChunk = allChunks[idx - 1];
+      if (
+        prevChunk &&
+        !selectedSet.has(prevChunk.text) &&
+        typeof c.messageIndex === "number" &&
+        typeof prevChunk.messageIndex === "number" &&
+        c.messageIndex - prevChunk.messageIndex > 0 &&
+        c.messageIndex - prevChunk.messageIndex <= 2
+      ) {
+        const lines = prevChunk.text.split("\n").map(l => l.trim()).filter(Boolean);
+        const lastLine = lines.length > 0 ? lines[lines.length - 1] : "";
+        if (lastLine) {
+          const snippet = lastLine.length > 120 ? lastLine.slice(0, 117) + "..." : lastLine;
+          return {
+            ...c,
+            text: `[Контекст перед этим: ${snippet}]\n${c.text}`
+          };
+        }
+      }
+    }
+    return c;
+  });
+}
+
+/**
  * Searches RAG memory for a user query using BM25 relevance scoring.
  * Synchronous version for backwards compatibility.
  * Returns topK most relevant past memory snippets.
  */
-export function retrieveRelevantMemories(chatId, queryText, topK = 3) {
-  const candidates = getCandidateMemories(chatId, queryText, topK);
-  return candidates.slice(0, topK);
+export function retrieveRelevantMemories(chatId, queryText, topK = 3, options = {}) {
+  const candidates = getCandidateMemories(chatId, queryText, topK, options);
+  const sliced = candidates.slice(0, topK);
+  const indexData = ragIndexCache.get(chatId);
+  return enrichChunksWithPrecedingContext(sliced, indexData?.chunks || []);
 }
 
 /**
- * Asynchronous smart RAG retrieval powered by TypeSafe Jev reranking.
- * 1. Pulls top candidates via fast BM25 search.
- * 2. Uses Jev model (~typesafe/jev-latest) via OpenRouter System One API to calibrate relevance.
- * 3. Returns only memories that pass the semantic relevance threshold.
+ * Asynchronous smart RAG retrieval powered by TypeSafe Jev reranking and in-memory caching.
+ * 1. Checks memory cache by chatId + indexSignature + query.
+ * 2. Pulls top candidates via weighted BM25 search.
+ * 3. Uses Jev model via System One API to calibrate relevance.
+ * 4. Caches result (up to 10 entries) and returns relevant memories.
  */
 export async function retrieveRelevantMemoriesAsync(chatId, queryText, topK = 3, apiKey = null, options = {}) {
-  const candidates = getCandidateMemories(chatId, queryText, RAG_CANDIDATE_POOL);
+  const chat = state.chats?.[chatId] || [];
+  let indexData = ragIndexCache.get(chatId);
+  if (!indexData || indexData.signature !== indexSignature(chat, chatId)) {
+    indexData = buildRagIndex(chatId);
+  }
+  const signature = indexData?.signature || "0";
+  const cacheKey = `${chatId}|${signature}|${queryText.trim()}`;
+
+  if (ragJevResultCache.has(cacheKey)) {
+    return ragJevResultCache.get(cacheKey);
+  }
+
+  const candidates = getCandidateMemories(chatId, queryText, RAG_CANDIDATE_POOL, options);
   if (candidates.length === 0) {
     return [];
   }
 
   if (!apiKey || !apiKey.trim()) {
-    return candidates.slice(0, topK);
+    const rawRes = candidates.slice(0, topK);
+    const res = enrichChunksWithPrecedingContext(rawRes, indexData?.chunks || []);
+    ragJevResultCache.set(cacheKey, res);
+    return res;
   }
 
   try {
@@ -312,19 +466,30 @@ export async function retrieveRelevantMemoriesAsync(chatId, queryText, topK = 3,
       topK
     });
 
-    // An empty array is a real verdict ("nothing relevant"), so it must not be
-    // replaced by the lexical candidates. Reranker errors already return a
-    // lexical fallback from rerankMemoriesWithJev itself.
-    return Array.isArray(reranked) ? reranked : candidates.slice(0, topK);
+    const rawResult = Array.isArray(reranked) ? reranked : candidates.slice(0, topK);
+    const result = enrichChunksWithPrecedingContext(rawResult, indexData?.chunks || []);
+    if (ragJevResultCache.size >= MAX_RAG_RESULT_CACHE_SIZE) {
+      const oldestKey = ragJevResultCache.keys().next().value;
+      ragJevResultCache.delete(oldestKey);
+    }
+    ragJevResultCache.set(cacheKey, result);
+    return result;
   } catch (err) {
     console.warn("[RAG Service] Jev reranking failed, fallback to BM25:", err);
-    return candidates.slice(0, topK);
+    return enrichChunksWithPrecedingContext(candidates.slice(0, topK), indexData?.chunks || []);
   }
 }
 
 /**
- * Clears cached RAG index for a chat (used when clearing chat or reloading)
+ * Clears cached RAG index and result cache for a chat (used when clearing chat or reloading)
  */
 export function clearRagIndex(chatId) {
   ragIndexCache.delete(chatId);
+  for (const key of ragJevResultCache.keys()) {
+    if (key.startsWith(`${chatId}|`)) {
+      ragJevResultCache.delete(key);
+    }
+  }
 }
+
+export { ragJevResultCache };

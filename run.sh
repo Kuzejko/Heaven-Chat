@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
-export PATH="$HOME/.local/bin:$PATH"
-node server.js
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "$SCRIPT_DIR/launcher.sh" "$@"

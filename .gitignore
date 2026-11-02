@@ -4,6 +4,9 @@
 .env.*.local
 *.pem
 *.key
+*.pid
+.server.pid
+data/default_export.json
 
 # Зависимости Node.js
 node_modules/

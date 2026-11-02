@@ -89,6 +89,7 @@ import {
   getDefaultStatesForCharacter,
   getStageBehavior,
   getStateType,
+  calculateRelationshipStage,
   isBuiltinState,
   isValidStateKey,
   BUILTIN_STATES,
@@ -156,7 +157,10 @@ import {
   getSessionMemory,
   saveSessionMemory,
   saveSessionMemories,
-  saveSessionMemorySnapshots
+  saveSessionMemorySnapshots,
+  getChatTotalMessageCount,
+  pruneArchivedRagChunks,
+  clearArchivedRagChunks
 } from "./services/storage.js";
 import {
   extractStructuredMemoryFromLLM,
@@ -181,7 +185,7 @@ import {
 } from "./services/openrouter.js";
 import { getEffectiveApiConfig } from "./services/apiHelper.js";
 import { retrieveRelevantMemories, retrieveRelevantMemoriesAsync, buildRagIndex } from "./services/ragService.js";
-import { checkDirectivesWithJev, testJevConnection } from "./services/jevService.js";
+import { checkDirectivesWithJev, testJevConnection, evaluateTurnSignificanceWithJev, evaluateTurnWithJev } from "./services/jevService.js";
 import { generateWorldLoreFromChat } from "./services/lorebook.js";
 
 const sendMessageStream = (options) => {
@@ -239,6 +243,7 @@ import {
   clearEnvironment,
   clearData,
   importDataFromFile,
+  applyExportData,
   normalizeApiSettings,
   updateActiveModelBadge,
   updateQuickModelSwitcherUI,
@@ -892,13 +897,14 @@ function addEventLogEntry(characterId, message) {
   renderEventLog();
 }
 
-function applyStageUpdate(characterId, stageUpdate) {
+function applyStageUpdate(characterId, stageUpdate, isManual = true) {
   if (!stageUpdate) return;
   const activeChatId = String(characterId).startsWith("chat_") ? characterId : (getActiveChatId(characterId) || characterId);
   const oldStage = getChatStates(activeChatId).relationshipStage || "Stranger";
   state.chatStates[activeChatId] = {
     ...getChatStates(activeChatId),
-    relationshipStage: stageUpdate.stage
+    relationshipStage: stageUpdate.stage,
+    manualRelationshipStage: isManual ? true : (getChatStates(activeChatId).manualRelationshipStage || false)
   };
   saveChatStates(state.chatStates);
   
@@ -2428,7 +2434,7 @@ function stripPartnerVoice(text, partnerName) {
   }
   const name = partnerName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(
-    "(^|\\n)[ \\t>]*(?:【" + name + "】[ \\t]*:|" + name + "[ \\t]*:)[^\\n]*",
+    "(^|\\n)[ \\t>]*(?:【" + name + "】[ \\t]*:|" + name + "[ \\t]*:|\\[CHARACTER:\\s*" + name + "\\s*\\])[^\\n]*",
     "gi"
   );
   body = body.replace(re, "");
@@ -2733,6 +2739,18 @@ function autoApplyStateProposals(character, activeChatId, proposals) {
   }
   
   if (hasChanges) {
+    if (!currentStates.manualRelationshipStage) {
+      const calculatedStage = calculateRelationshipStage(currentStates, character?.coreStates, false);
+      const currentStage = currentStates.relationshipStage || "Stranger";
+      if (calculatedStage && calculatedStage !== currentStage) {
+        currentStates.relationshipStage = calculatedStage;
+        const stageLog = `STAGE auto-updated to "${calculatedStage}" based on relationship dynamic`;
+        addEventLogEntry(activeChatId, stageLog);
+        showStateNotification(`💫 Relationship Stage: ${calculatedStage}`);
+        updateChatStageInMetadata(character.id, activeChatId, calculatedStage);
+      }
+    }
+
     state.chatStates[activeChatId] = currentStates;
     saveChatStates(state.chatStates);
     renderStates();
@@ -2911,11 +2929,16 @@ async function finalizeDirectivesInChatMessage(chatId, userMessage = "") {
   }
 
   // 2. Intelligent semantic check via Jev for remaining active directives
+  // If turn evaluator is enabled, directives are checked inside evaluateTurnWithJev in a single batch
+  const apiConfig = getEffectiveApiConfig(state.apiSettings, dom.apiKeyInput?.value);
+  if (state.apiSettings?.enableEvaluator !== false && apiConfig.apiKey) {
+    return;
+  }
+
   const list = state.characterDirectives?.[chatId] || [];
   const remainingActive = list.filter(d => d.active !== false && d.mode !== "keep");
   if (remainingActive.length === 0) return;
 
-  const apiConfig = getEffectiveApiConfig(state.apiSettings, dom.apiKeyInput?.value);
   if (!apiConfig.apiKey) return;
 
   try {
@@ -3392,6 +3415,22 @@ function autoApplyDuoProposal(character, activeChatId, proposal) {
   if (normalized === originalValue) return null;
 
   currentStates[proposal.key] = normalized;
+
+  const isSecondary = proposal.key.startsWith("duo_") && !proposal.key.startsWith("duo_relationship");
+  if (!currentStates.manualRelationshipStage && !isSecondary) {
+    const calculatedStage = calculateRelationshipStage(currentStates, character?.coreStates, false);
+    const currentStage = currentStates.relationshipStage || "Stranger";
+    if (calculatedStage && calculatedStage !== currentStage) {
+      currentStates.relationshipStage = calculatedStage;
+      const stageLog = `STAGE auto-updated to "${calculatedStage}" based on relationship dynamic`;
+      addEventLogEntry(activeChatId, stageLog);
+      showStateNotification(`💫 Relationship Stage: ${calculatedStage}`);
+      if (character && character.id) {
+        updateChatStageInMetadata(character.id, activeChatId, calculatedStage);
+      }
+    }
+  }
+
   state.chatStates[activeChatId] = currentStates;
   saveChatStates(state.chatStates);
 
@@ -3655,8 +3694,9 @@ async function handleInlineRegenerate(msgIndex) {
   
   const truncated = chat.slice(0, msgIndex);
   state.chats = { ...state.chats, [activeChatId]: truncated };
-  rollbackSummaryForChat(activeChatId, truncated.length);
-  rollbackSessionMemoryForChat(activeChatId, truncated.length);
+  const targetCount = getChatTotalMessageCount(truncated);
+  rollbackSummaryForChat(activeChatId, targetCount);
+  rollbackSessionMemoryForChat(activeChatId, targetCount);
   renderMessages();
 
   state.isStreaming = true;
@@ -3680,6 +3720,14 @@ async function handleInlineRegenerate(msgIndex) {
       if (!sharedScenario.trim()) {
         sharedScenario = replaceMacros(char2.scenario || "", char2);
       }
+
+      const recentDuoChat = state.chats?.[activeChatId] || [];
+      const enrichedDuoQuery = `${recentDuoChat.slice(-4).map(m => m.content).join(" ")} ${userPrompt}`;
+      const duoRagMemories = await retrieveRelevantMemoriesAsync(activeChatId, enrichedDuoQuery, 3, apiConfig.apiKey, {
+        model: state.apiSettings.jevModel,
+        apiProvider: apiConfig.apiProvider,
+        baseUrl: apiConfig.baseUrl
+      });
       
       if (isRegeneratingSecondOfDuo) {
         // --- DUO SINGLE CHARACTER REGENERATION (Only regenerate the second character) ---
@@ -3698,7 +3746,7 @@ async function handleInlineRegenerate(msgIndex) {
         renderMessages();
 
         setStatus(`[Duo] ${targetChar.name} is typing...`);
-        const requestMsg = buildApiMessages(targetChar, userPrompt, null, partnerChar, states, activeChatId, sharedScenario);
+        const requestMsg = buildApiMessages(targetChar, userPrompt, null, partnerChar, states, activeChatId, sharedScenario, duoRagMemories);
 
         let finalText = "";
         try {
@@ -3749,7 +3797,7 @@ async function handleInlineRegenerate(msgIndex) {
         renderMessages();
 
         setStatus(`[Duo] ${character.name} is typing...`);
-        const requestMsg1 = buildApiMessages(character, userPrompt, null, char2, states, activeChatId, sharedScenario);
+        const requestMsg1 = buildApiMessages(character, userPrompt, null, char2, states, activeChatId, sharedScenario, duoRagMemories);
         
         let finalText1 = "";
         try {
@@ -3783,7 +3831,7 @@ async function handleInlineRegenerate(msgIndex) {
         renderMessages();
 
         setStatus(`[Duo] ${char2.name} is typing...`);
-        const requestMsg2 = buildApiMessages(char2, userPrompt, null, character, states, activeChatId, sharedScenario);
+        const requestMsg2 = buildApiMessages(char2, userPrompt, null, character, states, activeChatId, sharedScenario, duoRagMemories);
         
         let finalText2 = "";
         try {
@@ -4230,6 +4278,7 @@ function handleRestartChat() {
   saveChatSummaries(state.chatSummaries);
   saveChatSummarizedMessageCount(state.chatSummarizedMessageCount);
   saveChatSummarySnapshots(state.chatSummarySnapshots);
+  clearArchivedRagChunks(activeChatId);
 
   // Invalidate any in-flight background summarization so it doesn't
   // overwrite the freshly cleared state once it resolves.
@@ -4281,6 +4330,7 @@ function handleDeleteChat() {
   delete state.chatSummaries[activeChatId];
   delete state.chatSummarizedMessageCount[activeChatId];
   delete state.chatSummarySnapshots[activeChatId];
+  clearArchivedRagChunks(activeChatId);
   saveChats(state.chats);
   saveChatStates(state.chatStates);
   saveChatSummaries(state.chatSummaries);
@@ -4556,6 +4606,7 @@ function rollbackSessionMemoryForChat(chatId, targetCount) {
   }
   state.sessionMemorySnapshots[chatId] = snapshots;
   saveSessionMemorySnapshots(state.sessionMemorySnapshots);
+  pruneArchivedRagChunks(chatId, targetCount);
 }
 
 async function maybeAutoUpdateSessionCodex(activeChatId) {
@@ -4564,31 +4615,44 @@ async function maybeAutoUpdateSessionCodex(activeChatId) {
   const chat = state.chats[activeChatId] || [];
   if (chat.length === 0) return;
 
+  const totalMessages = getChatTotalMessageCount(chat);
   const snapshot = getSessionMemory(activeChatId);
   let processed = getCodexProcessedCount(snapshot);
-  if (processed > chat.length) processed = 0;
-  if (chat.length - processed < CODEX_AUTO_UPDATE_EVERY) return;
+  if (processed > totalMessages) processed = 0;
+  if (totalMessages - processed < CODEX_AUTO_UPDATE_EVERY) return;
 
   // Periodic cleanup pass: widen the window so the extractor can refresh
   // scalar state (location, physical/emotional states) and prune stale facts.
-  const updateOrdinal = Math.floor(chat.length / CODEX_AUTO_UPDATE_EVERY);
+  const updateOrdinal = Math.floor(totalMessages / CODEX_AUTO_UPDATE_EVERY);
   const isCleanup = updateOrdinal > 0 && updateOrdinal % CODEX_CLEANUP_EVERY_UPDATES === 0;
-  const start = isCleanup
-    ? Math.max(0, chat.length - CODEX_CLEANUP_WINDOW)
-    : Math.max(processed, chat.length - CODEX_AUTO_UPDATE_MAX_MESSAGES);
+
+  let sliceStart = 0;
+  if (isCleanup) {
+    const startSeq = Math.max(1, totalMessages - CODEX_CLEANUP_WINDOW);
+    const foundIdx = chat.findIndex(m => (m && typeof m.seq === "number" ? m.seq : 0) >= startSeq);
+    sliceStart = foundIdx !== -1 ? foundIdx : Math.max(0, chat.length - CODEX_CLEANUP_WINDOW);
+  } else {
+    const startSeq = Math.max(1, processed - 2);
+    const foundIdx = chat.findIndex(m => (m && typeof m.seq === "number" ? m.seq : 0) >= startSeq);
+    sliceStart = foundIdx !== -1 ? foundIdx : Math.max(0, chat.length - (totalMessages - processed + 2));
+  }
+
+  const messagesSlice = chat.slice(sliceStart);
+  const firstMsg = messagesSlice[0];
+  const sliceStartIndex = (firstMsg && typeof firstMsg.seq === "number") ? (firstMsg.seq - 1) : sliceStart;
 
   codexAutoUpdateInFlight.add(activeChatId);
   try {
-    const updated = await extractStructuredMemoryFromLLM(snapshot || createDefaultSessionMemory(), chat.slice(start), {
-      startIndex: start,
+    const updated = await extractStructuredMemoryFromLLM(snapshot || createDefaultSessionMemory(), messagesSlice, {
+      startIndex: sliceStartIndex,
       cleanup: isCleanup
     });
     const latest = getSessionMemory(activeChatId);
     const editedMeanwhile = JSON.stringify(latest) !== JSON.stringify(snapshot);
-    const toSave = editedMeanwhile ? smartMergeSessionMemory(latest, updated, chat.length) : updated;
+    const toSave = editedMeanwhile ? smartMergeSessionMemory(latest, updated, totalMessages) : updated;
     saveSessionMemory(activeChatId, toSave);
     state.sessionMemories[activeChatId] = toSave;
-    persistSessionMemorySnapshot(activeChatId, chat.length, toSave);
+    persistSessionMemorySnapshot(activeChatId, totalMessages, toSave);
     codexFailNotified.delete(activeChatId);
 
     const viewedId = state.sidebarTab === "gm" ? state.activeGmSceneId : state.activeCharacterId;
@@ -4632,30 +4696,119 @@ async function runTurnEvaluationBackground(options) {
   renderMessages();
 
   try {
-    const statePromise = (async () => {
+    const list = state.characterDirectives?.[activeChatId] || [];
+    const activeDirectives = list.filter(d => d.active !== false && d.mode !== "keep");
+    const currentStates = getChatStates(activeChatId);
+
+    let jevResult = null;
+    if (apiConfig.apiKey) {
       try {
-        if (isDuo && char2) {
-          return await evaluateDuoStateChangesBackground(character, char2, activeChatId, userMessage, characterResponse) || [];
-        } else if (!isGm && character) {
-          return await evaluateStateChangesBackground(character, activeChatId, userMessage, characterResponse) || [];
+        jevResult = await evaluateTurnWithJev({
+          apiKey: apiConfig.apiKey,
+          baseUrl: apiConfig.baseUrl,
+          apiProvider: apiConfig.apiProvider,
+          model: state.apiSettings?.jevModel,
+          userMessage,
+          characterResponse,
+          activeDirectives,
+          character,
+          char2,
+          currentStates,
+          isDuo,
+          timeoutMs: 12000
+        });
+      } catch (jevErr) {
+        console.warn("[Evaluator] Jev batch evaluation error:", jevErr);
+        jevResult = null;
+      }
+    }
+
+    let appliedStates = [];
+    let summaryPromise = null;
+
+    if (jevResult && jevResult.ok) {
+      // 1. Directives completion
+      if (Array.isArray(jevResult.completedDirectives) && jevResult.completedDirectives.length > 0) {
+        let anyChanged = false;
+        jevResult.completedDirectives.forEach(({ directive, confidence }) => {
+          const target = list.find(d => d.id === directive.id);
+          if (target && target.active !== false) {
+            target.active = false;
+            target.completed = true;
+            anyChanged = true;
+            const pct = Math.round(confidence * 100);
+            showStateNotification(`🎯 Jev Детектор: Цель «${target.text}» выполнена (${pct}%)`);
+          }
+        });
+        if (anyChanged) {
+          saveCharacterDirectives(state.characterDirectives);
+          renderDirectivesBar();
         }
-      } catch (err) {
-        console.warn("[Evaluator] State evaluation error:", err);
       }
-      return [];
-    })();
 
-    const summaryPromise = (async () => {
-      try {
-        return await summarizeChatHistoryBackground(character, activeChatId);
-      } catch (err) {
-        console.warn("[Evaluator] Summary evaluation error:", err);
+      // 2. Mood update (choice confidence >= 0.55)
+      if (jevResult.mood && character) {
+        updateStateValue(activeChatId, "mood", jevResult.mood);
       }
-      return null;
-    })();
+      if (isDuo && jevResult.duoMood) {
+        updateStateValue(activeChatId, "duo_mood", jevResult.duoMood);
+      }
 
-    const [appliedStates, newSummary] = await Promise.all([statePromise, summaryPromise]);
+      // 3. CoreStates deltas
+      if (Array.isArray(jevResult.stateChanges) && jevResult.stateChanges.length > 0 && character) {
+        if (isDuo && char2) {
+          appliedStates = [];
+          for (const p of jevResult.stateChanges) {
+            const isSecondary = String(p.key || "").startsWith("duo_");
+            const applied = autoApplyDuoProposal(isSecondary ? char2 : character, activeChatId, p);
+            if (applied) appliedStates.push(applied);
+          }
+        } else {
+          appliedStates = autoApplyStateProposals(character, activeChatId, jevResult.stateChanges) || [];
+        }
+      }
 
+      // 4. Plot significance check for story summary
+      const summaryMode = state.apiSettings?.summaryMode || "every_turn";
+      if (summaryMode === "every_turn" && jevResult.plotSignificanceScore < 0.35) {
+        console.log(`[Evaluator] Skipping idle summary: turn plot significance score is low (${jevResult.plotSignificanceScore.toFixed(2)})`);
+        summaryPromise = Promise.resolve(null);
+      } else {
+        summaryPromise = summarizeChatHistoryBackground(character, activeChatId).catch(err => {
+          console.warn("[Evaluator] Summary error:", err);
+          return null;
+        });
+      }
+    } else {
+      // Fallback: legacy LLM evaluation when Jev is unavailable or returned error
+      const statePromise = (async () => {
+        try {
+          if (isDuo && char2) {
+            return await evaluateDuoStateChangesBackground(character, char2, activeChatId, userMessage, characterResponse) || [];
+          } else if (!isGm && character) {
+            return await evaluateStateChangesBackground(character, activeChatId, userMessage, characterResponse) || [];
+          }
+        } catch (err) {
+          console.warn("[Evaluator] State evaluation error (fallback):", err);
+        }
+        return [];
+      })();
+
+      summaryPromise = (async () => {
+        try {
+          return await summarizeChatHistoryBackground(character, activeChatId);
+        } catch (err) {
+          console.warn("[Evaluator] Summary error (fallback):", err);
+        }
+        return null;
+      })();
+
+      const [fallbackStates, fallbackSummary] = await Promise.all([statePromise, summaryPromise]);
+      appliedStates = fallbackStates;
+      summaryPromise = Promise.resolve(fallbackSummary);
+    }
+
+    const newSummary = await summaryPromise;
     const activeSummary = newSummary || state.chatSummaries[activeChatId] || "";
     const memorySnapshot = extractMemorySnapshotFromSummary(activeSummary);
 
@@ -6567,13 +6720,7 @@ async function handleContinueResponse(msgIndex) {
     : Math.max(0, existingSwipes.length - 1);
 
   const states = getChatStates(activeChatId);
-  const requestMessages = isGm
-    ? [
-        { role: "system", content: buildGroupScenePrompt(continuePrompt) },
-        ...chat.map(m => ({ role: m.role, content: m.content })),
-        { role: "user", content: continuePrompt }
-      ]
-    : buildApiMessages(character, continuePrompt, null, null, states, activeChatId);
+  const requestMessages = buildApiMessages(character, continuePrompt, null, null, states, activeChatId, null, null, { isContinue: true });
 
   try {
     let continuedText = "";
@@ -6589,8 +6736,10 @@ async function handleContinueResponse(msgIndex) {
         signal: state.abortController.signal,
         enableThinking: apiConfig.enableThinking,
         onToken: (agg) => {
-          const sep = (originalContent && !originalContent.endsWith(" ") && !agg.startsWith(" ") && !agg.startsWith("\n")) ? " " : "";
-          const combined = originalContent + sep + agg;
+          const { content: aggBody } = parseThoughtAndContent(agg);
+          const textToAppend = (aggBody !== undefined && aggBody !== null) ? aggBody : agg;
+          const sep = (originalContent && !originalContent.endsWith(" ") && !textToAppend.startsWith(" ") && !textToAppend.startsWith("\n")) ? " " : "";
+          const combined = originalContent + sep + textToAppend;
           state.chats = replaceLastAssistantMessage(state.chats, activeChatId, combined);
           renderMessagesThrottled();
         }
@@ -6609,8 +6758,10 @@ async function handleContinueResponse(msgIndex) {
       });
     }
 
-    const sep = (originalContent && !originalContent.endsWith(" ") && !continuedText.startsWith(" ") && !continuedText.startsWith("\n")) ? " " : "";
-    const finalCombined = originalContent + sep + (continuedText || "");
+    const { content: finalContBody } = parseThoughtAndContent(continuedText || "");
+    const cleanContinuation = (finalContBody !== undefined && finalContBody !== null ? finalContBody : continuedText) || "";
+    const sep = (originalContent && !originalContent.endsWith(" ") && !cleanContinuation.startsWith(" ") && !cleanContinuation.startsWith("\n")) ? " " : "";
+    const finalCombined = originalContent + sep + cleanContinuation;
     state.chats = replaceLastAssistantMessage(state.chats, activeChatId, finalCombined);
 
     const curChat = state.chats[activeChatId];
@@ -6648,8 +6799,9 @@ function handleDeleteMessage(msgIndex) {
   saveChats(state.chats);
 
   // Roll both memory layers back to the last state consistent with the canon chat
-  rollbackSummaryForChat(activeChatId, newChat.length);
-  rollbackSessionMemoryForChat(activeChatId, newChat.length);
+  const targetCount = getChatTotalMessageCount(newChat);
+  rollbackSummaryForChat(activeChatId, targetCount);
+  rollbackSessionMemoryForChat(activeChatId, targetCount);
 
   renderMessages();
   updateStatsUI();
@@ -6816,6 +6968,43 @@ function bootstrap() {
 
   updateStatsUI();
   setStatus("Ready");
+  initServerConfig();
+}
+
+async function initServerConfig() {
+  try {
+    const res = await fetch("./data/default_export.json", { cache: "no-store" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.exportedAt) return;
+
+    const storedTimestamp = localStorage.getItem("openrouter_server_export_timestamp");
+    if (storedTimestamp !== data.exportedAt) {
+      console.log("[ServerConfig] Applying default server configuration:", data.exportedAt);
+      applyExportData(data);
+      localStorage.setItem("openrouter_server_export_timestamp", data.exportedAt);
+
+      ensureActiveCharacter();
+      ensureActiveGmScene();
+      switchSidebarTab(state.sidebarTab || "characters");
+      if (state.sidebarTab === "gm" && state.activeGmSceneId) {
+        switchActiveGmScene(state.activeGmSceneId);
+      } else if (state.activeCharacterId) {
+        switchActiveCharacter(state.activeCharacterId);
+      }
+      renderCharacterList();
+      renderPersonaList();
+      renderGmScenes();
+      updateStatsUI();
+      setStatus("Конфигурация с сервера загружена.");
+    }
+  } catch (err) {
+    console.log("[ServerConfig] Server default export not loaded:", err.message);
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.initServerConfig = initServerConfig;
 }
 
 function formatTokenPricePerMillion(rawPricePerToken) {
@@ -7087,7 +7276,14 @@ async function summarizeChatHistoryBackground(character, chatId, force = false) 
   }
   
   const chat = state.chats[chatId] || [];
-  const totalMessages = chat.length;
+  const totalMessages = getChatTotalMessageCount(chat);
+
+  // Skip idle summary calls when history is short and fully fits into the raw context window
+  const maxHist = Number(state.apiSettings?.maxHistoryMessages ?? 20);
+  if (!force && (totalMessages < 6 || (maxHist > 0 && totalMessages <= Math.floor(maxHist / 2)))) {
+    return false;
+  }
+
   const currentSummarizedCount = state.chatSummarizedMessageCount[chatId] || 0;
   
   const currentVer = (chatSummaryVersion[chatId] = (chatSummaryVersion[chatId] || 0) + 1);
@@ -7110,7 +7306,11 @@ async function summarizeChatHistoryBackground(character, chatId, force = false) 
   } else if (summaryMode === "every_turn") {
     newMessages = chat.slice(-2);
   } else {
-    newMessages = chat.slice(Math.max(0, currentSummarizedCount));
+    let sliceIdx = chat.findIndex(m => (m && typeof m.seq === "number" ? m.seq : 0) > currentSummarizedCount);
+    if (sliceIdx === -1) {
+      sliceIdx = Math.max(0, currentSummarizedCount);
+    }
+    newMessages = chat.slice(sliceIdx);
   }
 
   if (!newMessages || newMessages.length === 0) {

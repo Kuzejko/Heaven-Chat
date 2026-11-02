@@ -4087,6 +4087,7 @@ export function collectSessionCodexFromUI() {
     key_events,
     unresolved_threads,
     intimate_notes,
+    permanent_anchors: Array.isArray(currentMem.permanent_anchors) ? currentMem.permanent_anchors : [],
     current_status: dom.codexCurrentStatusInput ? dom.codexCurrentStatusInput.value.trim() : "",
     last_updated_message_id: currentMem.last_updated_message_id || 0
   };

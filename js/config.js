@@ -173,111 +173,120 @@ export function clearData() {
   return clearEnvironment();
 }
 
+export function applyExportData(data) {
+  if (!data || typeof data !== "object") return false;
+  if (data.characters) {
+    state.characters = data.characters;
+    saveCharacters(state.characters);
+  }
+  if (data.chats) {
+    state.chats = data.chats;
+    saveChats(state.chats);
+  }
+  if (data.globalSystemPrompt !== undefined) {
+    state.globalSystemPrompt = data.globalSystemPrompt;
+    saveGlobalSystemPrompt(state.globalSystemPrompt);
+    if (dom.globalSystemPromptInput) {
+      dom.globalSystemPromptInput.value = state.globalSystemPrompt;
+    }
+  }
+  if (data.chatStates) {
+    state.chatStates = data.chatStates;
+    saveChatStates(state.chatStates);
+  }
+  if (data.chatMetadata) {
+    state.chatMetadata = data.chatMetadata;
+    saveChatMetadata(state.chatMetadata);
+  }
+  if (data.models) {
+    state.models = data.models;
+    saveModelsCache(state.models);
+  }
+  if (data.modelsMetadata) {
+    state.modelsMetadata = data.modelsMetadata;
+    saveModelsMetadataCache(state.modelsMetadata);
+  }
+  if (data.gmScenes) {
+    state.gmScenes = data.gmScenes;
+    saveGmScenes(state.gmScenes);
+    renderGmScenes();
+  }
+  if (data.gmChats) {
+    state.gmChats = data.gmChats;
+    saveGmChats(state.gmChats);
+  }
+  if (data.activeGmSceneId !== undefined) {
+    state.activeGmSceneId = data.activeGmSceneId;
+    saveActiveGmSceneId(state.activeGmSceneId);
+  }
+  if (data.personas) {
+    state.personas = data.personas;
+    savePersonas(state.personas);
+    renderPersonaList();
+  }
+  if (data.customStateStages) {
+    state.customStateStages = data.customStateStages;
+    saveCustomStateStages(state.customStateStages);
+  }
+  if (data.customStateTypes) {
+    state.customStateTypes = data.customStateTypes;
+    saveCustomStateTypes(state.customStateTypes);
+  }
+  if (data.apiSettings) {
+    state.apiSettings = normalizeApiSettings(data.apiSettings);
+    saveApiSettings(state.apiSettings);
+  }
+  if (data.apiKey !== undefined) {
+    saveApiKey(data.apiKey);
+    if (dom.apiKeyInput) dom.apiKeyInput.value = data.apiKey;
+  }
+  if (data.nordrouterApiKey !== undefined) {
+    saveNordrouterApiKey(data.nordrouterApiKey);
+    if (dom.nordrouterApiKeyInput) dom.nordrouterApiKeyInput.value = data.nordrouterApiKey;
+  }
+  if (data.totalSpent !== undefined) {
+    state.totalSpent = data.totalSpent;
+    saveTotalSpent(state.totalSpent);
+  }
+  if (data.chatSummaries) {
+    state.chatSummaries = data.chatSummaries;
+    saveChatSummaries(state.chatSummaries);
+  }
+  if (data.sessionMemories) {
+    state.sessionMemories = data.sessionMemories;
+    saveSessionMemories(state.sessionMemories);
+  }
+  if (data.chatSummarizedMessageCount) {
+    state.chatSummarizedMessageCount = data.chatSummarizedMessageCount;
+    saveChatSummarizedMessageCount(state.chatSummarizedMessageCount);
+  }
+  if (data.chatSummarySnapshots) {
+    state.chatSummarySnapshots = data.chatSummarySnapshots;
+    saveChatSummarySnapshots(state.chatSummarySnapshots);
+  }
+  if (data.pinnedFacts) {
+    state.pinnedFacts = data.pinnedFacts;
+    savePinnedFacts(state.pinnedFacts);
+  }
+  if (data.sidebarTab) {
+    state.sidebarTab = data.sidebarTab;
+    saveSidebarTab(state.sidebarTab);
+  }
+  if (data.activeCharacterId) {
+    state.activeCharacterId = data.activeCharacterId;
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("openrouter_active_character_id_v1", data.activeCharacterId);
+    }
+  }
+  return true;
+}
+
 export function importDataFromFile(file, onSuccess, onError) {
   const reader = new FileReader();
   reader.onload = () => {
     try {
       const data = JSON.parse(String(reader.result));
-      if (data.characters) {
-        state.characters = data.characters;
-        saveCharacters(state.characters);
-      }
-      if (data.chats) {
-        state.chats = data.chats;
-        saveChats(state.chats);
-      }
-      if (data.globalSystemPrompt !== undefined) {
-        state.globalSystemPrompt = data.globalSystemPrompt;
-        saveGlobalSystemPrompt(state.globalSystemPrompt);
-        if (dom.globalSystemPromptInput) {
-          dom.globalSystemPromptInput.value = state.globalSystemPrompt;
-        }
-      }
-      if (data.chatStates) {
-        state.chatStates = data.chatStates;
-        saveChatStates(state.chatStates);
-      }
-      if (data.chatMetadata) {
-        state.chatMetadata = data.chatMetadata;
-        saveChatMetadata(state.chatMetadata);
-      }
-      if (data.models) {
-        state.models = data.models;
-        saveModelsCache(state.models);
-      }
-      if (data.modelsMetadata) {
-        state.modelsMetadata = data.modelsMetadata;
-        saveModelsMetadataCache(state.modelsMetadata);
-      }
-      if (data.gmScenes) {
-        state.gmScenes = data.gmScenes;
-        saveGmScenes(state.gmScenes);
-        renderGmScenes();
-      }
-      if (data.gmChats) {
-        state.gmChats = data.gmChats;
-        saveGmChats(state.gmChats);
-      }
-      if (data.activeGmSceneId !== undefined) {
-        state.activeGmSceneId = data.activeGmSceneId;
-        saveActiveGmSceneId(state.activeGmSceneId);
-      }
-      if (data.personas) {
-        state.personas = data.personas;
-        savePersonas(state.personas);
-        renderPersonaList();
-      }
-      if (data.customStateStages) {
-        state.customStateStages = data.customStateStages;
-        saveCustomStateStages(state.customStateStages);
-      }
-      if (data.customStateTypes) {
-        state.customStateTypes = data.customStateTypes;
-        saveCustomStateTypes(state.customStateTypes);
-      }
-      if (data.apiSettings) {
-        state.apiSettings = normalizeApiSettings(data.apiSettings);
-        saveApiSettings(state.apiSettings);
-      }
-      if (data.apiKey !== undefined) {
-        saveApiKey(data.apiKey);
-        if (dom.apiKeyInput) dom.apiKeyInput.value = data.apiKey;
-      }
-      if (data.nordrouterApiKey !== undefined) {
-        saveNordrouterApiKey(data.nordrouterApiKey);
-        if (dom.nordrouterApiKeyInput) dom.nordrouterApiKeyInput.value = data.nordrouterApiKey;
-      }
-      if (data.totalSpent !== undefined) {
-        state.totalSpent = data.totalSpent;
-        saveTotalSpent(state.totalSpent);
-      }
-      if (data.chatSummaries) {
-        state.chatSummaries = data.chatSummaries;
-        saveChatSummaries(state.chatSummaries);
-      }
-      if (data.sessionMemories) {
-        state.sessionMemories = data.sessionMemories;
-        saveSessionMemories(state.sessionMemories);
-      }
-      if (data.chatSummarizedMessageCount) {
-        state.chatSummarizedMessageCount = data.chatSummarizedMessageCount;
-        saveChatSummarizedMessageCount(state.chatSummarizedMessageCount);
-      }
-      if (data.chatSummarySnapshots) {
-        state.chatSummarySnapshots = data.chatSummarySnapshots;
-        saveChatSummarySnapshots(state.chatSummarySnapshots);
-      }
-      if (data.pinnedFacts) {
-        state.pinnedFacts = data.pinnedFacts;
-        savePinnedFacts(state.pinnedFacts);
-      }
-      if (data.sidebarTab) {
-        state.sidebarTab = data.sidebarTab;
-        saveSidebarTab(state.sidebarTab);
-      }
-      if (data.activeCharacterId) {
-        state.activeCharacterId = data.activeCharacterId;
-      }
+      applyExportData(data);
       if (onSuccess) onSuccess();
     } catch (e) {
       if (onError) onError(e);

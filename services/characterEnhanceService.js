@@ -149,7 +149,7 @@ ${customInstructions ? `ДОПОЛНИТЕЛЬНЫЕ ПОЖЕЛАНИЯ ПОЛЬ
 ПЕРВОЕ СООБЩЕНИЕ: ${characterData.firstMessage || "Не задано"}
 ТЕКУЩИЕ ШКАЛЫ (CORE STATES):
 ${existingStatesText}
-${characterData.hiddenTraits && characterData.hiddenTraits.length ? `СКРЫТЫЕ ЧЕРТЫ: ${characterData.hiddenTraits.join(", ")}` : ""}`;
+${characterData.hiddenTraits && characterData.hiddenTraits.length ? `СКРЫТЫЕ ЧЕРТЫ: ${characterData.hiddenTraits.join(", ")}\n` : ""}${characterData.postHistoryInstructions ? `ИНСТРУКЦИИ АВТОРА (AUTHOR'S NOTE): ${characterData.postHistoryInstructions}` : ""}`;
 
   return { systemInstruction, userContent };
 }
@@ -245,6 +245,7 @@ export async function analyzeAndEnhanceCharacter(characterData, options = {}, on
     imagePrompt: parsed.imagePrompt || characterData.imagePrompt || "",
     model: characterData.model || "",
     systemPrompt: characterData.systemPrompt || "",
+    postHistoryInstructions: characterData.postHistoryInstructions || parsed.postHistoryInstructions || "",
     exampleDialogs: characterData.exampleDialogs || "",
     lorebook: characterData.lorebook || [],
     coreStates: []

@@ -5,18 +5,18 @@ import { dom } from "../js/ui.js";
 import { getEffectiveApiConfig } from "./apiHelper.js";
 import { sendMessageNonStream } from "./openrouter.js";
 
-export function scanLoreBookAndBuildContent(character, userPrompt = "") {
-  if (!character.lorebook || !Array.isArray(character.lorebook) || character.lorebook.length === 0) {
+export function scanLoreBookAndBuildContent(character, userPrompt = "", explicitChatId = null) {
+  if (!character || !character.lorebook || !Array.isArray(character.lorebook) || character.lorebook.length === 0) {
     return "";
   }
   
-  const activeChatId = getActiveChatId(character.id);
+  const activeChatId = explicitChatId || getActiveChatId(character.id);
   const chat = state.chats[activeChatId] || [];
   
-  let historyText = userPrompt;
+  let historyText = userPrompt || "";
   const recentMsgs = chat.slice(-2);
   recentMsgs.forEach(msg => {
-    historyText += " " + msg.content;
+    historyText += " " + (msg.content || "");
   });
   
   const activeLore = [];
@@ -31,7 +31,7 @@ export function scanLoreBookAndBuildContent(character, userPrompt = "") {
   
   if (activeLore.length === 0) return "";
   
-  return `\n--- WORLD LORE & CONTEXT ---\n${activeLore.join("\n\n")}`;
+  return activeLore.join("\n\n");
 }
 
 export async function generateLoreTriggers(topic, detail) {

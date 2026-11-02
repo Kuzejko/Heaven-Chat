@@ -389,6 +389,7 @@ CRITICAL ROLEPLAY REQUIREMENTS FOR RUSSIAN ADAPTATION:
       { "keys": "ключевое_слово, синоним, keyword", "content": "Подробное описание лора на русском языке", "enabled": true }
     ]
 15. "imagePrompt": A polished English text prompt for Midjourney / Stable Diffusion / Flux avatar generation.
+16. "postHistoryInstructions": Author's Note or post-history instructions translated/adapted to Russian (if present in original card, preserve its meaning).
 
 IMPORTANT:
 - Keep all formatting macros {{user}}, {{char}}, <START> intact.
@@ -424,6 +425,7 @@ ${rawCard.firstMessage}
 ${altGreetingsText ? `АЛЬТЕРНАТИВНЫЕ ПРИВЕТСТВИЯ (Alternate Greetings):\n${altGreetingsText}\n` : ""}
 ${rawCard.exampleDialogs ? `ПРИМЕРЫ ДИАЛОГА (Example Dialogs):\n${rawCard.exampleDialogs}\n` : ""}
 ${rawCard.systemPrompt ? `СИСТЕМНЫЙ ПРОМПТ (System Prompt):\n${rawCard.systemPrompt}\n` : ""}
+${rawCard.postHistoryInstructions ? `ИНСТРУКЦИИ АВТОРА / AUTHOR'S NOTE (Post-history instructions):\n${rawCard.postHistoryInstructions}\n` : ""}
 ${lorebookText ? `ВСТРОЕННЫЙ ЛОРБУК (Lorebook Entries):\n${lorebookText}\n` : ""}
 ${rawCard.tags && rawCard.tags.length > 0 ? `ТЕГИ (Tags): ${rawCard.tags.join(", ")}\n` : ""}`;
 
@@ -467,6 +469,9 @@ ${rawCard.tags && rawCard.tags.length > 0 ? `ТЕГИ (Tags): ${rawCard.tags.joi
   } else if (rawCard.lorebook && rawCard.lorebook.length > 0) {
     parsed.lorebook = rawCard.lorebook;
   }
+
+  // Preserve author post-history instructions / Author's Note
+  parsed.postHistoryInstructions = parsed.postHistoryInstructions || rawCard.postHistoryInstructions || "";
 
   return parsed;
 }
